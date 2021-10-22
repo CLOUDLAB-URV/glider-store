@@ -195,6 +195,7 @@
     <module>storage-rdma</module>
     <module>storage-nvmf</module>
     <module>storage-narpc</module>
+    <module>storage-active</module>
     <module>rpc</module>
     <module>rpc-darpc</module>
     <module>rpc-narpc</module>

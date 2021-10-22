@@ -81,7 +81,7 @@ public interface StorageServer extends Configurable, Runnable {
 		int storageClass = -1;
 		
 		//custom values
-		if (args != null) {
+		if (args.length > 0) {
 			Option typeOption = Option.builder("t").desc("storage type to start").hasArg().build();
 			Option classOption = Option.builder("c").desc("storage class the server will attach to").hasArg().build();
 			Options options = new Options();
@@ -93,7 +93,7 @@ public interface StorageServer extends Configurable, Runnable {
 				CommandLine line = parser.parse(options, Arrays.copyOfRange(args, 0, splitIndex));
 				if (line.hasOption(typeOption.getOpt())) {
 					storageName = line.getOptionValue(typeOption.getOpt());
-					storageType = storageTypes.get(storageName).intValue();
+					storageType = storageTypes.get(storageName);
 				}				
 				if (line.hasOption(classOption.getOpt())) {
 					storageClass = Integer.parseInt(line.getOptionValue(classOption.getOpt()));
@@ -109,18 +109,14 @@ public interface StorageServer extends Configurable, Runnable {
 		}
 		
 		StorageTier storageTier = StorageTier.createInstance(storageName);
-		if (storageTier == null){
-			throw new Exception("Cannot instantiate datanode of type " + storageName);
-		}
 		StorageServer server = storageTier.launchServer();
 		
-		String extraParams[] = null;
+		String[] extraParams = null;
 		splitIndex++;
 		if (args.length > splitIndex){
 			extraParams = new String[args.length - splitIndex];
-			for (int i = splitIndex; i < args.length; i++){
-				extraParams[i-splitIndex] = args[i];
-			}
+			if (args.length - splitIndex >= 0)
+				System.arraycopy(args, splitIndex, extraParams, 0, args.length - splitIndex);
 		}
 		server.init(conf, extraParams);
 		server.printConf(LOG);
@@ -157,7 +153,7 @@ public interface StorageServer extends Configurable, Runnable {
 				break;
 			} else {
 				storageRpc.setBlock(lba, resource.getAddress(), resource.getLength(), resource.getKey());
-				lba += (long) resource.getLength();
+				lba += resource.getLength();
 				
 				DataNodeStatistics stats = storageRpc.getDataNode();
 				long newCount = stats.getFreeBlockCount();

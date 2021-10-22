@@ -80,6 +80,11 @@
     </dependency>
     <dependency>
       <groupId>org.apache.crail</groupId>
+      <artifactId>crail-storage-active</artifactId>
+      <version>${project.parent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.crail</groupId>
       <artifactId>crail-hdfs</artifactId>
       <version>${project.parent.version}</version>
     </dependency>
