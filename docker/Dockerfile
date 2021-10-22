@@ -17,7 +17,7 @@ FROM ubuntu:18.04
 MAINTAINER Apache Crail <dev@crail.apache.org>
 
 # TODO: automate update version on new release
-ARG GIT_COMMIT="v1.2"
+ARG GIT_COMMIT="v1.3-daniel"
 ENV LOG_COMMIT=$GIT_COMMIT
 
 RUN echo "Crail-$LOG_COMMIT install openjdk8, git and envsubst" && \
@@ -33,12 +33,13 @@ ENV PATH=${PATH}:${JAVA_HOME}/bin
 RUN echo "Crail-$LOG_COMMIT install maven" && \
     apt-get install --no-install-recommends -y maven
 
+ADD . /incubator-crail
 
 RUN echo "Crail-$LOG_COMMIT clone & build Crail repo" && \
-    git clone https://github.com/apache/incubator-crail.git && \
+#    git clone https://github.com/danielBCN/incubator-crail.git && \
     cd incubator-crail && \
-    git checkout ${GIT_COMMIT} && \
-    mvn -DskipTests package
+#    git checkout ${GIT_COMMIT} && \
+    mvn -DskipTests install
 
 RUN echo "Move crail to /crail" && \
     rm -rf /crail && \
@@ -57,9 +58,9 @@ ENV STORAGELIMIT=1073741824
 ENV CACHEPATH=/dev/hugepages/cache
 ENV CACHELIMIT=0
 
-COPY ./start-crail-docker.sh $CRAIL_HOME/bin
-COPY ./crail-env.sh $CRAIL_HOME/conf
-COPY ./core-site.xml.env $CRAIL_HOME/conf
-COPY ./crail-site.conf $CRAIL_HOME/conf
+COPY ./docker/start-crail-docker.sh $CRAIL_HOME/bin
+COPY ./docker/crail-env.sh $CRAIL_HOME/conf
+COPY ./docker/core-site.xml.env $CRAIL_HOME/conf
+COPY ./docker/crail-site.conf $CRAIL_HOME/conf
 
 ENTRYPOINT ["start-crail-docker.sh"]
