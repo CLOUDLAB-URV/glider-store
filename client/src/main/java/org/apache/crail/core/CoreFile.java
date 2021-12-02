@@ -32,58 +32,59 @@ import org.apache.crail.CrailNode;
 import org.apache.crail.CrailNodeType;
 import org.apache.crail.CrailOutputStream;
 import org.apache.crail.CrailTable;
+import org.apache.crail.CrailObject;
 import org.apache.crail.metadata.FileInfo;
 
 public class CoreFile extends CoreNode implements CrailFile, CrailKeyValue {
 	private Semaphore outputStreams;
-	
-	public CoreFile(CoreDataStore fs, FileInfo fileInfo, String path){
+
+	public CoreFile(CoreDataStore fs, FileInfo fileInfo, String path) {
 		super(fs, fileInfo, path);
 		this.outputStreams = new Semaphore(1);
 	}
-	
-	public CrailInputStream getDirectInputStream(long readHint) throws Exception{
-		if (fileInfo.getType().isDirectory()){
+
+	public CrailInputStream getDirectInputStream(long readHint) throws Exception {
+		if (fileInfo.getType().isDirectory()) {
 			throw new Exception("Cannot open stream for directory");
-		}		
-		
+		}
+
 		return super.getInputStream(readHint);
-	}	
-	
+	}
+
 	public synchronized CrailOutputStream getDirectOutputStream(long writeHint) throws Exception {
-		if (fileInfo.getType().isDirectory()){
+		if (fileInfo.getType().isDirectory()) {
 			throw new Exception("Cannot open stream for directory");
-		}		
-		if (fileInfo.getToken() == 0){
+		}
+		if (fileInfo.getToken() == 0) {
 			throw new Exception("File is in read mode, cannot create outputstream, fd " + fileInfo.getFd());
 		}
-		if (!outputStreams.tryAcquire()){
+		if (!outputStreams.tryAcquire()) {
 			throw new Exception("Only one concurrent output stream per file allowed");
 		}
 		return super.getOutputStream(writeHint);
 	}
-	
+
 	public long getToken() {
 		return fileInfo.getToken();
 	}
 
-	public boolean tokenFree(){
+	public boolean tokenFree() {
 		return fileInfo.tokenFree();
 	}
 
 	public CoreFile asFile() throws Exception {
-		if (!getType().isDataFile()){
+		if (!getType().isDataFile()) {
 			throw new Exception("file type mismatch, type " + getType());
 		}
 		return this;
 	}
-	
+
 	public CoreFile asKeyValue() throws Exception {
-		if (!getType().isKeyValue()){
+		if (!getType().isKeyValue()) {
 			throw new Exception("file type mismatch, type " + getType());
-		}		
+		}
 		return this;
-	}	
+	}
 
 	void closeOutputStream(CoreOutputStream stream) throws Exception {
 		super.closeOutputStream(stream);
@@ -97,7 +98,7 @@ class CoreEarlyFile implements CrailFile, CrailKeyValue {
 	private CrailNodeType type;
 	private CreateNodeFuture future;
 	private CrailFile file;
-	
+
 	public CoreEarlyFile(CoreDataStore fs, String path, CrailNodeType type, CreateNodeFuture future) {
 		this.fs = fs;
 		this.path = path;
@@ -106,18 +107,18 @@ class CoreEarlyFile implements CrailFile, CrailKeyValue {
 		this.file = null;
 	}
 
-	public CrailInputStream getDirectInputStream(long readHint) throws Exception{
+	public CrailInputStream getDirectInputStream(long readHint) throws Exception {
 		return file().getDirectInputStream(readHint);
-	}	
-	
+	}
+
 	public synchronized CrailOutputStream getDirectOutputStream(long writeHint) throws Exception {
 		return file().getDirectOutputStream(writeHint);
 	}
-	
-	public CrailBlockLocation[] getBlockLocations(long start, long len) throws Exception{
+
+	public CrailBlockLocation[] getBlockLocations(long start, long len) throws Exception {
 		return fs.getBlockLocations(path, start, len);
-	}	
-	
+	}
+
 	public long getToken() {
 		return file().getToken();
 	}
@@ -125,10 +126,10 @@ class CoreEarlyFile implements CrailFile, CrailKeyValue {
 	public CrailFile asFile() throws Exception {
 		return this;
 	}
-	
+
 	public CrailKeyValue asKeyValue() throws Exception {
 		return this;
-	}	
+	}
 
 	@Override
 	public CrailStore getFileSystem() {
@@ -159,11 +160,11 @@ class CoreEarlyFile implements CrailFile, CrailKeyValue {
 	public CrailNodeType getType() {
 		return type;
 	}
-	
+
 	@Override
 	public CrailContainer asContainer() throws Exception {
 		throw new Exception("this is not a container");
-	}	
+	}
 
 	@Override
 	public CrailDirectory asDirectory() throws Exception {
@@ -174,11 +175,16 @@ class CoreEarlyFile implements CrailFile, CrailKeyValue {
 	public CrailMultiFile asMultiFile() throws Exception {
 		throw new Exception("this is not a multifile");
 	}
-	
+
 	@Override
 	public CrailTable asTable() throws Exception {
 		throw new Exception("this is not a table");
-	}	
+	}
+
+	@Override
+	public CrailObject asObject() throws Exception {
+		throw new Exception("this is not an object");
+	}
 
 	@Override
 	public long getFd() {
@@ -187,11 +193,11 @@ class CoreEarlyFile implements CrailFile, CrailKeyValue {
 
 	private synchronized CrailFile file() {
 		try {
-			if (file == null){
+			if (file == null) {
 				file = this.future.get().asFile();
 			}
 			return file;
-		} catch(Exception e){
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
 	}

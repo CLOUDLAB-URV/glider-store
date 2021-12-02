@@ -83,7 +83,7 @@ public class NameNodeService implements RpcNameNodeService, Sequencer {
 		//get params
 		FileName fileHash = request.getFileName();
 		CrailNodeType type = request.getFileType();
-		boolean writeable = type.isDirectory() ? false : true; 
+		boolean writeable = !type.isDirectory();
 		int storageClass = request.getStorageClass();
 		int locationClass = request.getLocationClass();
 		boolean enumerable = request.isEnumerable();
@@ -117,7 +117,7 @@ public class NameNodeService implements RpcNameNodeService, Sequencer {
 			AbstractNode oldNode = parentInfo.putChild(fileInfo);
 			if (oldNode != null && oldNode.getFd() != fileInfo.getFd()){
 				appendToDeleteQueue(oldNode);				
-			}		
+			}
 		} catch(Exception e){
 			return RpcErrors.ERR_FILE_EXISTS;
 		}
@@ -126,7 +126,7 @@ public class NameNodeService implements RpcNameNodeService, Sequencer {
 		NameNodeBlockInfo fileBlock = blockStore.getBlock(fileInfo.getStorageClass(), fileInfo.getLocationClass());
 		if (fileBlock == null){
 			return RpcErrors.ERR_NO_FREE_BLOCKS;
-		}			
+		}
 		if (!fileInfo.addBlock(0, fileBlock)){
 			return RpcErrors.ERR_ADD_BLOCK_FAILED;
 		}
@@ -139,7 +139,7 @@ public class NameNodeService implements RpcNameNodeService, Sequencer {
 				parentBlock = blockStore.getBlock(parentInfo.getStorageClass(), parentInfo.getLocationClass());
 				if (parentBlock == null){
 					return RpcErrors.ERR_NO_FREE_BLOCKS;
-				}			
+				}
 				if (!parentInfo.addBlock(index, parentBlock)){
 					blockStore.addBlock(parentBlock);
 					parentBlock = parentInfo.getBlock(index);

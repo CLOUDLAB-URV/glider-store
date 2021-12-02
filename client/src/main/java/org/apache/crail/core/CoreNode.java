@@ -26,6 +26,7 @@ import org.apache.crail.CrailMultiFile;
 import org.apache.crail.CrailNode;
 import org.apache.crail.CrailNodeType;
 import org.apache.crail.CrailTable;
+import org.apache.crail.CrailObject;
 import org.apache.crail.metadata.FileInfo;
 
 public class CoreNode implements CrailNode {
@@ -37,6 +38,8 @@ public class CoreNode implements CrailNode {
 	public static CoreNode create(CoreDataStore fs, FileInfo fileInfo, String path) {
 		if (fileInfo.getType().isContainer()){
 			return new CoreDirectory(fs, fileInfo, path);		
+		} else if (fileInfo.getType().isObject()) {
+			return new CoreObject(fs, fileInfo, path);
 		} else {
 			return new CoreFile(fs, fileInfo, path);
 		}
@@ -85,6 +88,10 @@ public class CoreNode implements CrailNode {
 	}
 	
 	public CoreFile asFile() throws Exception {
+		throw new Exception("Type of file unclear");
+	}
+
+	public CrailObject asObject() throws Exception {
 		throw new Exception("Type of file unclear");
 	}
 	

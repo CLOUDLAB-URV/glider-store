@@ -40,7 +40,6 @@ import org.apache.crail.metadata.DataNodeStatus;
 import org.apache.crail.rpc.RpcClient;
 import org.apache.crail.rpc.RpcConnection;
 import org.apache.crail.rpc.RpcDispatcher;
-import org.apache.crail.rpc.RpcErrors;
 import org.apache.crail.utils.CrailUtils;
 import org.slf4j.Logger;
 
@@ -61,7 +60,7 @@ public interface StorageServer extends Configurable, Runnable {
 		for (String param : args){
 			if (param.equalsIgnoreCase("--")){
 				break;
-			} 
+			}
 			splitIndex++;
 		}
 		
@@ -126,7 +125,7 @@ public interface StorageServer extends Configurable, Runnable {
 		
 		RpcClient rpcClient = RpcClient.createInstance(CrailConstants.NAMENODE_RPC_TYPE);
 		rpcClient.init(conf, args);
-		rpcClient.printConf(LOG);					
+		rpcClient.printConf(LOG);
 		
 		ConcurrentLinkedQueue<InetSocketAddress> namenodeList = CrailUtils.getNameNodeList();
 		ConcurrentLinkedQueue<RpcConnection> connectionList = new ConcurrentLinkedQueue<RpcConnection>();
@@ -138,8 +137,9 @@ public interface StorageServer extends Configurable, Runnable {
 		RpcConnection rpcConnection = connectionList.peek();
 		if (connectionList.size() > 1){
 			rpcConnection = new RpcDispatcher(connectionList);
-		}		
-		LOG.info("connected to namenode(s) " + rpcConnection.toString());				
+		}
+		assert rpcConnection != null;
+		LOG.info("connected to namenode(s) " + rpcConnection);
 		
 		
 		StorageRpcClient storageRpc = new StorageRpcClient(storageType, CrailStorageClass.get(storageClass), server.getAddress(), rpcConnection);

@@ -19,46 +19,15 @@
 package org.apache.crail;
 
 public enum CrailNodeType {
-	DATAFILE(0), DIRECTORY(1), MULTIFILE(2), STREAMFILE(3), TABLE(4), KEYVALUE(5);
-	
-	private int label;
-	
-	CrailNodeType(int label){
+	DATAFILE(0), DIRECTORY(1), MULTIFILE(2), STREAMFILE(3),
+	TABLE(4), KEYVALUE(5), OBJECT(6);
+
+	private final int label;
+
+	CrailNodeType(int label) {
 		this.label = label;
 	}
-	
-	public int getLabel(){
-		return this.label;
-	}
-	
-	public boolean isDirectory(){
-		return this == DIRECTORY;
-	}
-	
-	public boolean isDataFile(){
-		return this == DATAFILE;
-	}	
-	
-	public boolean isMultiFile(){
-		return this == MULTIFILE;
-	}
-	
-	public boolean isStreamFile(){
-		return this == STREAMFILE;
-	}
-	
-	public boolean isTable() {
-		return this == TABLE;
-	}
 
-	public boolean isKeyValue() {
-		return this == KEYVALUE;
-	}	
-	
-	public boolean isContainer(){
-		return this == DIRECTORY || this == MULTIFILE || this == TABLE;
-	}	
-	
 	public static CrailNodeType parse(int label) {
 		for (CrailNodeType val : CrailNodeType.values()) {
 			if (val.getLabel() == label) {
@@ -66,6 +35,42 @@ public enum CrailNodeType {
 			}
 		}
 		throw new IllegalArgumentException();
+	}
+
+	public int getLabel() {
+		return this.label;
+	}
+
+	public boolean isDirectory() {
+		return this == DIRECTORY;
+	}
+
+	public boolean isDataFile() {
+		return this == DATAFILE;
+	}
+
+	public boolean isMultiFile() {
+		return this == MULTIFILE;
+	}
+
+	public boolean isStreamFile() {
+		return this == STREAMFILE;
+	}
+
+	public boolean isTable() {
+		return this == TABLE;
+	}
+
+	public boolean isKeyValue() {
+		return this == KEYVALUE;
+	}
+
+	public boolean isObject() {
+		return  this == OBJECT;
+	}
+
+	public boolean isContainer() {
+		return this == DIRECTORY || this == MULTIFILE || this == TABLE;
 	}
 
 }

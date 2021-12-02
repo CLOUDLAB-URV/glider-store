@@ -18,20 +18,8 @@
 
 package org.apache.crail;
 
-
-public interface CrailNode {
-	public CrailStore getFileSystem();
-	public String getPath(); 
-	public abstract CrailNode syncDir() throws Exception;
-	public abstract long getModificationTime();
-	public abstract long getCapacity();
-	public abstract CrailNodeType getType();
-	public abstract CrailFile asFile() throws Exception;
-	public abstract CrailContainer asContainer() throws Exception;
-	public abstract CrailDirectory asDirectory() throws Exception;
-	public abstract CrailMultiFile asMultiFile() throws Exception;
-	public abstract CrailTable asTable() throws Exception;
-	public abstract CrailKeyValue asKeyValue() throws Exception;
-	public abstract CrailObject asObject() throws Exception;
-	public abstract CrailBlockLocation[] getBlockLocations(long start, long len) throws Exception;
+public interface CrailObject extends CrailNode {
+	long getToken();
+	long getFd();
+	CrailObjectProxy getProxy() throws Exception;
 }
