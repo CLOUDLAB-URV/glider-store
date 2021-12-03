@@ -4,6 +4,10 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.ibm.narpc.NaRPCServerChannel;
+import com.ibm.narpc.NaRPCServerEndpoint;
+import com.ibm.narpc.NaRPCServerGroup;
+import com.ibm.narpc.NaRPCService;
 import org.apache.crail.CrailAction;
 import org.apache.crail.conf.CrailConfiguration;
 import org.apache.crail.conf.CrailConstants;
@@ -13,11 +17,6 @@ import org.apache.crail.storage.StorageUtils;
 import org.apache.crail.storage.tcp.TcpStorageConstants;
 import org.apache.crail.utils.CrailUtils;
 import org.slf4j.Logger;
-
-import com.ibm.narpc.NaRPCServerChannel;
-import com.ibm.narpc.NaRPCServerEndpoint;
-import com.ibm.narpc.NaRPCServerGroup;
-import com.ibm.narpc.NaRPCService;
 
 public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveStorageRequest, ActiveStorageResponse> {
 	private static final Logger LOG = CrailUtils.getLogger();
@@ -127,8 +126,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 								Class<? extends CrailAction> actionClass =
 										Class.forName(createRequest.getName()).asSubclass(CrailAction.class);
 								return actionClass.newInstance();
-							} catch (ClassNotFoundException | ClassCastException |
-									InstantiationException | IllegalAccessException e) {
+							} catch (ClassNotFoundException | ClassCastException
+									| InstantiationException | IllegalAccessException e) {
 								return null;
 							}
 						});
