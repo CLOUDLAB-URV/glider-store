@@ -22,6 +22,7 @@ public class ActiveStorageClient implements StorageClient {
 	public void init(CrailStatistics statistics, CrailBufferCache bufferCache, CrailConfiguration conf, String[] args)
 			throws IOException {
 		TcpStorageConstants.updateConstants(conf);
+		ActiveStorageConstants.updateConstants(conf);
 
 		this.clientGroup = new NaRPCClientGroup<>(
 				TcpStorageConstants.STORAGE_TCP_QUEUE_DEPTH,
@@ -31,6 +32,7 @@ public class ActiveStorageClient implements StorageClient {
 	@Override
 	public void printConf(Logger logger) {
 		TcpStorageConstants.printConf(logger);
+		ActiveStorageConstants.printConf(logger);
 	}
 
 	@Override

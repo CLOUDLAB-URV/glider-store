@@ -144,12 +144,14 @@ public interface StorageServer extends Configurable, Runnable {
 		assert rpcConnection != null;
 		LOG.info("connected to namenode(s) " + rpcConnection);
 
-		StorageRpcClient storageRpc = new StorageRpcClient(storageType, CrailStorageClass.get(storageClass), server.getAddress(), rpcConnection);
+		StorageRpcClient storageRpc =
+				new StorageRpcClient(storageType, CrailStorageClass.get(storageClass),
+									server.getAddress(), rpcConnection);
 
 		HashMap<Long, Long> blockCount = new HashMap<Long, Long>();
 		AtomicLong sumCount = new AtomicLong();
 		long lba = 0;
-		while (server.isAlive()) {
+		while (true) {
 			StorageResource resource = server.allocateResource();
 			if (resource == null) {
 				break;
@@ -165,7 +167,7 @@ public interface StorageServer extends Configurable, Runnable {
 				long diffCount = newCount - oldCount;
 				blockCount.put(serviceId, newCount);
 				long count = sumCount.addAndGet(diffCount);
-				LOG.info("datanode statistics, freeBlocks " + count);
+				LOG.info("datanode statistics, allocated freeBlocks " + count);
 			}
 		}
 

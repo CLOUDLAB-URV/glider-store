@@ -68,10 +68,10 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 	}
 
 	@Override
-	public StorageFuture create(String className, BlockInfo block) throws IOException {
+	public StorageFuture create(String filename, String className, BlockInfo block) throws IOException {
 		LOG.info("Active create, class name " + className + ", block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.CreateRequest createReq =
-				new ActiveStorageRequest.CreateRequest(className, block.getLkey(), block.getAddr());
+				new ActiveStorageRequest.CreateRequest(filename, className, block.getLkey(), block.getAddr());
 		ActiveStorageResponse.CreateResponse createResp = new ActiveStorageResponse.CreateResponse();
 
 		ActiveStorageRequest req = new ActiveStorageRequest(createReq);

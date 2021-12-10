@@ -1,14 +1,24 @@
 package org.apache.crail.storage.active;
 
+import java.io.File;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import com.ibm.narpc.NaRPCServerChannel;
 import com.ibm.narpc.NaRPCServerEndpoint;
 import com.ibm.narpc.NaRPCServerGroup;
 import com.ibm.narpc.NaRPCService;
 import org.apache.crail.CrailAction;
+import org.apache.crail.CrailObject;
+import org.apache.crail.CrailStore;
 import org.apache.crail.conf.CrailConfiguration;
 import org.apache.crail.conf.CrailConstants;
 import org.apache.crail.storage.StorageResource;
@@ -29,9 +39,34 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 	private long keys;
 	private ConcurrentHashMap<Integer, ConcurrentHashMap<Long, CrailAction>> actions;
 
+	private ScheduledExecutorService scheduler;
+	private List<String> jars;
+	private CrailStore fs;
+
+	public static synchronized void loadLibrary(java.io.File jar) {
+		try {
+			LOG.info("Loading JAR: " + jar.getName());
+			ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+			try {
+				Method method = classLoader.getClass().getDeclaredMethod("addURL", URL.class);
+				method.setAccessible(true);
+				method.invoke(classLoader, jar.toURI().toURL());
+			} catch (NoSuchMethodException e) {
+				Method method = classLoader.getClass()
+						.getDeclaredMethod("appendToClassPathForInstrumentation", String.class);
+				method.setAccessible(true);
+				method.invoke(classLoader, jar.getPath());
+			}
+		} catch (final java.lang.NoSuchMethodException | java.lang.IllegalAccessException
+				| java.net.MalformedURLException | java.lang.reflect.InvocationTargetException e) {
+			e.printStackTrace();
+		}
+	}
+
 	@Override
 	public void init(CrailConfiguration conf, String[] args) throws Exception {
 		TcpStorageConstants.init(conf, args);
+		ActiveStorageConstants.init(conf, args);
 
 		this.serverGroup = new NaRPCServerGroup<>(this,
 				TcpStorageConstants.STORAGE_TCP_QUEUE_DEPTH,
@@ -46,11 +81,17 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 		this.regions = TcpStorageConstants.STORAGE_TCP_STORAGE_LIMIT / TcpStorageConstants.STORAGE_TCP_ALLOCATION_SIZE;
 		this.keys = 0;
 		this.actions = new ConcurrentHashMap<>();
+
+		scheduler = Executors.newScheduledThreadPool(1);
+		jars = new LinkedList<>();
+
+		fs = CrailStore.newInstance(conf);
 	}
 
 	@Override
 	public void printConf(Logger logger) {
 		TcpStorageConstants.printConf(logger);
+		ActiveStorageConstants.printConf(logger);
 	}
 
 	@Override
@@ -83,6 +124,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 		this.alive = false;
 
 		try {
+			scheduler.shutdown();
 			serverEndpoint.close();
 			serverGroup.close();
 		} catch (Exception e) {
@@ -92,9 +134,38 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 
 	@Override
 	public void run() {
+		LOG.info("running Active-TCP storage server, address " + address);
+		this.alive = true;
+
+		Runnable jarLoader = () -> {
+			try {
+				File folder = new File(ActiveStorageConstants.STORAGE_ACTIVE_JAR_DIR);
+				LOG.info("Monitoring jars in " + ActiveStorageConstants.STORAGE_ACTIVE_JAR_DIR);
+				File[] listOfFiles = folder.listFiles();
+				if (listOfFiles == null) {
+					LOG.error("User JAR path is not a directory!");
+					return;
+				}
+				for (File file : listOfFiles) {
+					if (file.isFile() && file.getName().matches(".*\\.jar") && !jars.contains(file.getName())) {
+						loadLibrary(file);
+						jars.add(file.getName());
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		};
+
 		try {
-			LOG.info("running Active-TCP storage server, address " + address);
-			this.alive = true;
+			jarLoader.run();
+		} catch (Exception e) {
+			// ignore
+		}
+
+		scheduler.scheduleAtFixedRate(jarLoader, 10, 10, TimeUnit.SECONDS);
+
+		try {
 			while (true) {
 				NaRPCServerChannel endpoint = serverEndpoint.accept();
 				LOG.info("new connection " + endpoint.address());
@@ -125,9 +196,17 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 							try {
 								Class<? extends CrailAction> actionClass =
 										Class.forName(createRequest.getName()).asSubclass(CrailAction.class);
-								return actionClass.newInstance();
+								CrailObject node = fs.lookup(createRequest.getPath()).get().asObject();
+								CrailAction a = actionClass.newInstance();
+								Method method = CrailAction.class.getDeclaredMethod("init", CrailObject.class);
+								method.setAccessible(true);
+								method.invoke(a, node);
+								return a;
 							} catch (ClassNotFoundException | ClassCastException
 									| InstantiationException | IllegalAccessException e) {
+								return null;
+							} catch (Exception e) {
+								LOG.info("Object creating is not in namenode.");
 								return null;
 							}
 						});

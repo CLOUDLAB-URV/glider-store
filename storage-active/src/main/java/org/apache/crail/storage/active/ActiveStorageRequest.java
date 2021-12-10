@@ -211,20 +211,22 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	}
 
 	public static class CreateRequest {
-		public static final int CSIZE = Integer.BYTES + Long.BYTES + Integer.BYTES;
+		public static final int CSIZE = Integer.BYTES + Long.BYTES + Integer.BYTES + Integer.BYTES;
 
 		private int key;
 		private long address;
 		private String name;
+		private String path;
 
 		public CreateRequest() {
 
 		}
 
-		public CreateRequest(String className, int key, long address) {
+		public CreateRequest(String filename, String className, int key, long address) {
+			this.path = filename;
+			this.name = className;
 			this.key = key;
 			this.address = address;
-			this.name = className;
 		}
 
 		public long getAddress() {
@@ -239,25 +241,36 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			return name;
 		}
 
+		public String getPath() {
+			return path;
+		}
+
 		public int size() {
-			return CSIZE + name.getBytes(StandardCharsets.UTF_8).length;
+			return CSIZE + name.getBytes(StandardCharsets.UTF_8).length
+					+ path.getBytes(StandardCharsets.UTF_8).length;
 		}
 
 		public void update(ByteBuffer buffer) throws IOException {
 			key = buffer.getInt();
 			address = buffer.getLong();
-			byte[] stringBytes = new byte[buffer.getInt()];
-			buffer.get(stringBytes);
-			name = new String(stringBytes, StandardCharsets.UTF_8);
+			byte[] nameBytes = new byte[buffer.getInt()];
+			buffer.get(nameBytes);
+			name = new String(nameBytes, StandardCharsets.UTF_8);
+			byte[] pathBytes = new byte[buffer.getInt()];
+			buffer.get(pathBytes);
+			path = new String(pathBytes, StandardCharsets.UTF_8);
 		}
 
 		public int write(ByteBuffer buffer) throws IOException {
 			buffer.putInt(key);
 			buffer.putLong(address);
-			byte[] stringBytes = name.getBytes(StandardCharsets.UTF_8);
-			buffer.putInt(stringBytes.length);
-			buffer.put(stringBytes);
-			return CSIZE + stringBytes.length;
+			byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+			buffer.putInt(nameBytes.length);
+			buffer.put(nameBytes);
+			byte[] pathBytes = path.getBytes(StandardCharsets.UTF_8);
+			buffer.putInt(pathBytes.length);
+			buffer.put(pathBytes);
+			return CSIZE + nameBytes.length + pathBytes.length;
 		}
 	}
 
