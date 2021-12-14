@@ -34,7 +34,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 	private int type;
 	private WriteResponse writeResponse;
 	private ReadResponse readResponse;
-	private CreateResponse createResponse;
+	private EmptyResponse emptyResponse;
 
 	public ActiveStorageResponse(WriteResponse writeResponse) {
 		this.writeResponse = writeResponse;
@@ -48,8 +48,8 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		this.error = ActiveStorageProtocol.RET_OK;
 	}
 
-	public ActiveStorageResponse(CreateResponse createResponse) {
-		this.createResponse = createResponse;
+	public ActiveStorageResponse(EmptyResponse emptyResponse) {
+		this.emptyResponse = emptyResponse;
 		this.type = ActiveStorageProtocol.REQ_CREATE;
 		this.error = ActiveStorageProtocol.RET_OK;
 	}
@@ -70,8 +70,9 @@ public class ActiveStorageResponse implements NaRPCMessage {
 			writeResponse.update(buffer);
 		} else if (type == ActiveStorageProtocol.REQ_READ) {
 			readResponse.update(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_CREATE) {
-			createResponse.update(buffer);
+		} else if (type == ActiveStorageProtocol.REQ_CREATE
+				| type == ActiveStorageProtocol.REQ_DEL) {
+			emptyResponse.update(buffer);
 		}
 	}
 
@@ -84,8 +85,9 @@ public class ActiveStorageResponse implements NaRPCMessage {
 			written += writeResponse.write(buffer);
 		} else if (type == ActiveStorageProtocol.REQ_READ) {
 			written += readResponse.write(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_CREATE) {
-			written += createResponse.write(buffer);
+		} else if (type == ActiveStorageProtocol.REQ_CREATE
+				| type == ActiveStorageProtocol.REQ_DEL) {
+			written += emptyResponse.write(buffer);
 		}
 		return written;
 	}
@@ -143,9 +145,9 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		}
 	}
 
-	public static class CreateResponse {
+	public static class EmptyResponse {
 
-		public CreateResponse() {
+		public EmptyResponse() {
 		}
 
 		public void update(ByteBuffer buffer) throws IOException {

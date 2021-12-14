@@ -33,11 +33,13 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	private WriteRequest writeRequest;
 	private ReadRequest readRequest;
 	private CreateRequest createRequest;
+	private DeleteRequest deleteRequest;
 
 	public ActiveStorageRequest() {
 		writeRequest = new WriteRequest();
 		readRequest = new ReadRequest();
 		createRequest = new CreateRequest();
+		deleteRequest = new DeleteRequest();
 	}
 
 	public ActiveStorageRequest(WriteRequest writeRequest) {
@@ -53,6 +55,11 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	public ActiveStorageRequest(CreateRequest createRequest) {
 		this.createRequest = createRequest;
 		this.type = ActiveStorageProtocol.REQ_CREATE;
+	}
+
+	public ActiveStorageRequest(DeleteRequest deleteRequest) {
+		this.deleteRequest = deleteRequest;
+		this.type = ActiveStorageProtocol.REQ_DEL;
 	}
 
 	public int size() {
@@ -72,6 +79,8 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			readRequest.update(buffer);
 		} else if (type == ActiveStorageProtocol.REQ_CREATE) {
 			createRequest.update(buffer);
+		} else if (type == ActiveStorageProtocol.REQ_DEL) {
+			deleteRequest.update(buffer);
 		}
 	}
 
@@ -85,6 +94,8 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			written += readRequest.write(buffer);
 		} else if (type == ActiveStorageProtocol.REQ_CREATE) {
 			written += createRequest.write(buffer);
+		} else if (type == ActiveStorageProtocol.REQ_DEL) {
+			written += deleteRequest.write(buffer);
 		}
 		return written;
 	}
@@ -99,6 +110,10 @@ public class ActiveStorageRequest implements NaRPCMessage {
 
 	public CreateRequest getCreateRequest() {
 		return createRequest;
+	}
+
+	public DeleteRequest getDeleteRequest() {
+		return deleteRequest;
 	}
 
 	public static class WriteRequest {
@@ -271,6 +286,45 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			buffer.putInt(pathBytes.length);
 			buffer.put(pathBytes);
 			return CSIZE + nameBytes.length + pathBytes.length;
+		}
+	}
+
+	public static class DeleteRequest {
+		public static final int CSIZE = Integer.BYTES + Long.BYTES;
+
+		private int key;
+		private long address;
+
+		public DeleteRequest() {
+
+		}
+
+		public DeleteRequest(int key, long address) {
+			this.key = key;
+			this.address = address;
+		}
+
+		public long getAddress() {
+			return address;
+		}
+
+		public int getKey() {
+			return key;
+		}
+
+		public int size() {
+			return CSIZE;
+		}
+
+		public void update(ByteBuffer buffer) throws IOException {
+			key = buffer.getInt();
+			address = buffer.getLong();
+		}
+
+		public int write(ByteBuffer buffer) throws IOException {
+			buffer.putInt(key);
+			buffer.putLong(address);
+			return CSIZE;
 		}
 	}
 

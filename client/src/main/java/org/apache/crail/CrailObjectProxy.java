@@ -8,4 +8,5 @@ public interface CrailObjectProxy {
 	int read(byte[] bytes) throws Exception;
 	Future<CrailResult> read(CrailBuffer dataBuf) throws Exception;
 	void create(Class<? extends CrailAction> actionClass) throws Exception;
+	void delete() throws Exception;
 }

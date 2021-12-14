@@ -213,7 +213,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				if (action == null) {
 					return new ActiveStorageResponse(ActiveStorageProtocol.RET_NOT_CREATED);
 				} else {
-					ActiveStorageResponse.CreateResponse createResponse = new ActiveStorageResponse.CreateResponse();
+					ActiveStorageResponse.EmptyResponse createResponse = new ActiveStorageResponse.EmptyResponse();
 					return new ActiveStorageResponse(createResponse);
 				}
 			}
@@ -246,6 +246,15 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				data.clear();
 				ActiveStorageResponse.ReadResponse readResponse = new ActiveStorageResponse.ReadResponse(data);
 				return new ActiveStorageResponse(readResponse);
+			}
+			case ActiveStorageProtocol.REQ_DEL: {
+				ActiveStorageRequest.DeleteRequest deleteRequest = request.getDeleteRequest();
+				LOG.info("processing active delete request, key " + deleteRequest.getKey()
+						+ ", address " + deleteRequest.getAddress());
+				actions.get(deleteRequest.getKey()).remove(deleteRequest.getAddress());
+
+				ActiveStorageResponse.EmptyResponse deleteResponse = new ActiveStorageResponse.EmptyResponse();
+				return new ActiveStorageResponse(deleteResponse);
 			}
 			default:
 				LOG.info("processing unknown request");

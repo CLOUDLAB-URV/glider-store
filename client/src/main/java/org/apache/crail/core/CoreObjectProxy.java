@@ -69,7 +69,12 @@ public class CoreObjectProxy implements CrailObjectProxy {
 
 	@Override
 	public void create(Class<? extends CrailAction> actionClass) throws Exception {
-		this.endpoint.create(node.path, actionClass.getName(), this.block);
+		this.endpoint.create(node.path, actionClass.getName(), this.block).get();
+	}
+
+	@Override
+	public void delete() throws Exception {
+		this.endpoint.delete(this.block).get();
 	}
 
 	public void write(byte[] bytes) throws Exception {
