@@ -12,10 +12,11 @@ public abstract class CrailAction {
 		onCreate();
 	}
 
-	public void onCreate() {
-	}
+	public void onCreate() {}
 
-	public abstract void onRead(ByteBuffer buffer);
+	public void onRead(ByteBuffer buffer) {}
 
-	public abstract void onWrite(ByteBuffer buffer);
+	public void onWrite(ByteBuffer buffer) {}
+
+	public void onDelete() {}
 }

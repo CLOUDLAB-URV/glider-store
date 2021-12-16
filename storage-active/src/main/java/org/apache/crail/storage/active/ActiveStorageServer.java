@@ -251,8 +251,11 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				ActiveStorageRequest.DeleteRequest deleteRequest = request.getDeleteRequest();
 				LOG.info("processing active delete request, key " + deleteRequest.getKey()
 						+ ", address " + deleteRequest.getAddress());
-				actions.get(deleteRequest.getKey()).remove(deleteRequest.getAddress());
-
+				CrailAction action = actions.get(deleteRequest.getKey()).get(deleteRequest.getAddress());
+				if (action != null) {
+					action.onDelete();
+					actions.get(deleteRequest.getKey()).remove(deleteRequest.getAddress());
+				}
 				ActiveStorageResponse.EmptyResponse deleteResponse = new ActiveStorageResponse.EmptyResponse();
 				return new ActiveStorageResponse(deleteResponse);
 			}

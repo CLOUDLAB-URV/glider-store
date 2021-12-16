@@ -17,6 +17,11 @@ public class BasicAction extends CrailAction {
 	}
 
 	@Override
+	public void onDelete() {
+		System.out.println("Crail action on delete");
+	}
+
+	@Override
 	public void onRead(ByteBuffer buffer) {
 		System.out.println("Crail action on read");
 		if (myBuffer == null) {
