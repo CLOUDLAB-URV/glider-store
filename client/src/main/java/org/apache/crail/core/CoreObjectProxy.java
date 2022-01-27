@@ -5,6 +5,7 @@ import org.apache.crail.CrailBuffer;
 import org.apache.crail.CrailObjectProxy;
 import org.apache.crail.CrailResult;
 import org.apache.crail.conf.CrailConstants;
+import org.apache.crail.memory.OffHeapBuffer;
 import org.apache.crail.metadata.BlockInfo;
 import org.apache.crail.metadata.FileInfo;
 import org.apache.crail.rpc.RpcConnection;
@@ -18,6 +19,9 @@ import org.apache.crail.utils.EndpointCache;
 import org.slf4j.Logger;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -54,7 +58,7 @@ public class CoreObjectProxy implements CrailObjectProxy {
 			throw new IOException("rpc timeout");
 		}
 		if (getBlockRes.getError() != RpcErrors.ERR_OK) {
-			LOG.info("inputStream: " + RpcErrors.messages[getBlockRes.getError()]);
+			LOG.info("crail proxy: " + RpcErrors.messages[getBlockRes.getError()]);
 			throw new IOException(RpcErrors.messages[getBlockRes.getError()]);
 		}
 		this.block = getBlockRes.getBlockInfo();
@@ -77,11 +81,21 @@ public class CoreObjectProxy implements CrailObjectProxy {
 		this.endpoint.delete(this.block).get();
 	}
 
-	public void write(byte[] bytes) throws Exception {
+	@Override
+	public InputStream getInputStream() {
+		return null;
+	}
+
+	@Override
+	public OutputStream getOutputStream() {
+		return null;
+	}
+
+	public int write(byte[] bytes) throws Exception {
 		// Analogous to the buffered stream write
-		CrailBuffer buffer = fs.allocateBuffer().clear().limit(bytes.length).slice();
-		buffer.put(bytes).clear();
-		write(buffer).get();
+		CrailBuffer buf = bufferOfSize(bytes.length);
+		buf.put(bytes).clear();
+		return (int) write(buf).get().getLen();
 	}
 
 	public Future<CrailResult> write(CrailBuffer dataBuf) throws Exception {
@@ -118,10 +132,10 @@ public class CoreObjectProxy implements CrailObjectProxy {
 
 	public int read(byte[] bytes) throws Exception {
 		// Analogous to the buffered stream read
-		CrailBuffer buffer = fs.allocateBuffer().clear().limit(bytes.length).slice();
-		CrailResult result = read(buffer).get();
-		buffer.clear();
-		buffer.get(bytes, 0, bytes.length);
+		CrailBuffer buf = bufferOfSize(bytes.length);
+		CrailResult result = read(buf).get();
+		buf.clear();
+		buf.get(bytes, 0, bytes.length);
 		return (int) result.getLen();
 	}
 
@@ -153,5 +167,18 @@ public class CoreObjectProxy implements CrailObjectProxy {
 			multiOperation.get();
 		}
 		return multiOperation;
+	}
+
+	private CrailBuffer bufferOfSize(int size) throws IOException {
+		CrailBuffer buf;
+		if (size == CrailConstants.BUFFER_SIZE) {
+			buf = fs.allocateBuffer();
+		} else if (size < CrailConstants.BUFFER_SIZE) {
+			buf = fs.allocateBuffer();
+			buf.clear().limit(size).slice();
+		} else {
+			buf = OffHeapBuffer.wrap(ByteBuffer.allocateDirect(size));
+		}
+		return buf;
 	}
 }

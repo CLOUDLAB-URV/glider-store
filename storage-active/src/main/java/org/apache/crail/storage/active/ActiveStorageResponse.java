@@ -19,17 +19,12 @@
 package org.apache.crail.storage.active;
 
 import com.ibm.narpc.NaRPCMessage;
-import org.apache.crail.conf.CrailConstants;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import static org.apache.crail.storage.active.ActiveStorageRequest.*;
-
 public class ActiveStorageResponse implements NaRPCMessage {
 	public static final int HEADER_SIZE = Integer.BYTES + Integer.BYTES;
-	public static final int CSIZE = HEADER_SIZE + Math.max(WriteRequest.CSIZE, ReadRequest.CSIZE);
-
 	private int error;
 	private int type;
 	private WriteResponse writeResponse;
@@ -48,31 +43,52 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		this.error = ActiveStorageProtocol.RET_OK;
 	}
 
-	public ActiveStorageResponse(EmptyResponse emptyResponse) {
+	public ActiveStorageResponse(CreateResponse emptyResponse) {
 		this.emptyResponse = emptyResponse;
 		this.type = ActiveStorageProtocol.REQ_CREATE;
 		this.error = ActiveStorageProtocol.RET_OK;
+	}
+
+	public ActiveStorageResponse(DeleteResponse emptyResponse) {
+		this.emptyResponse = emptyResponse;
+		this.type = ActiveStorageProtocol.REQ_DEL;
+		this.error = ActiveStorageProtocol.RET_OK;
+	}
+
+	public ActiveStorageResponse(int type, int error) {
+		this.type = type;
+		this.error = error;
 	}
 
 	public ActiveStorageResponse(int error) {
 		this.error = error;
 	}
 
-	public int size() {
-		return CSIZE;
+	public int getError() {
+		return error;
+	}
+
+	public int getType() {
+		return type;
+	}
+
+	public WriteResponse getWriteResponse() {
+		return writeResponse;
 	}
 
 	@Override
 	public void update(ByteBuffer buffer) throws IOException {
 		error = buffer.getInt();
 		type = buffer.getInt();
-		if (type == ActiveStorageProtocol.REQ_WRITE) {
-			writeResponse.update(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_READ) {
-			readResponse.update(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_CREATE
-				| type == ActiveStorageProtocol.REQ_DEL) {
-			emptyResponse.update(buffer);
+		if (error == ActiveStorageProtocol.RET_OK) {
+			if (type == ActiveStorageProtocol.REQ_WRITE) {
+				writeResponse.update(buffer);
+			} else if (type == ActiveStorageProtocol.REQ_READ) {
+				readResponse.update(buffer);
+			} else if (type == ActiveStorageProtocol.REQ_CREATE
+					| type == ActiveStorageProtocol.REQ_DEL) {
+				emptyResponse.update(buffer);
+			}
 		}
 	}
 
@@ -81,46 +97,47 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		buffer.putInt(error);
 		buffer.putInt(type);
 		int written = HEADER_SIZE;
-		if (type == ActiveStorageProtocol.REQ_WRITE) {
-			written += writeResponse.write(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_READ) {
-			written += readResponse.write(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_CREATE
-				| type == ActiveStorageProtocol.REQ_DEL) {
-			written += emptyResponse.write(buffer);
+		if (error == ActiveStorageProtocol.RET_OK) {
+			if (type == ActiveStorageProtocol.REQ_WRITE) {
+				written += writeResponse.write(buffer);
+			} else if (type == ActiveStorageProtocol.REQ_READ) {
+				written += readResponse.write(buffer);
+			} else if (type == ActiveStorageProtocol.REQ_CREATE
+					| type == ActiveStorageProtocol.REQ_DEL) {
+				written += emptyResponse.write(buffer);
+			}
 		}
 		return written;
 	}
 
 	public static class WriteResponse {
-		private int size;
+		private int bytesWritten;
 
 		public WriteResponse() {
 
 		}
 
-		public WriteResponse(int size) {
-			this.size = size;
+		public WriteResponse(int bytesWritten) {
+			this.bytesWritten = bytesWritten;
 		}
 
-		public int size() {
-			return size;
+		public int getBytesWritten() {
+			return bytesWritten;
 		}
 
 		public void update(ByteBuffer buffer) throws IOException {
-			size = buffer.getInt();
+			bytesWritten = buffer.getInt();
 		}
 
 		public int write(ByteBuffer buffer) throws IOException {
-			buffer.putInt(size);
+			buffer.putInt(bytesWritten);
 			return 4;
 		}
 	}
 
 	public static class ReadResponse {
-		public static final int CSIZE = Integer.BYTES + (int) CrailConstants.BLOCK_SIZE;
 
-		private ByteBuffer data;
+		private final ByteBuffer data;
 
 		public ReadResponse(ByteBuffer data) {
 			this.data = data;
@@ -139,13 +156,9 @@ public class ActiveStorageResponse implements NaRPCMessage {
 			buffer.limit(buffer.position() + remaining);
 			data.put(buffer);
 		}
-
-		public int size() {
-			return CSIZE;
-		}
 	}
 
-	public static class EmptyResponse {
+	public static abstract class EmptyResponse {
 
 		public EmptyResponse() {
 		}
@@ -156,11 +169,12 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		public int write(ByteBuffer buffer) throws IOException {
 			return 0;
 		}
-
-		public int size() {
-			return 0;
-		}
 	}
 
+	public static class CreateResponse extends EmptyResponse {
+	}
+
+	public static class DeleteResponse extends EmptyResponse {
+	}
 
 }

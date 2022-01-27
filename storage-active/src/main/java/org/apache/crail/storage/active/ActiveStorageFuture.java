@@ -21,14 +21,19 @@ package org.apache.crail.storage.active;
 import com.ibm.narpc.NaRPCFuture;
 import org.apache.crail.storage.StorageFuture;
 import org.apache.crail.storage.StorageResult;
+import org.apache.crail.utils.CrailUtils;
+import org.slf4j.Logger;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class ActiveStorageFuture implements StorageFuture, StorageResult {
+	private static final Logger LOG = CrailUtils.getLogger();
+
 	private final NaRPCFuture<ActiveStorageRequest, ActiveStorageResponse> future;
-	private final int len;
+	private int len;
+	private ActiveStorageResponse response;
 
 	public ActiveStorageFuture(NaRPCFuture<ActiveStorageRequest, ActiveStorageResponse> future, int len) {
 		this.future = future;
@@ -52,14 +57,26 @@ public class ActiveStorageFuture implements StorageFuture, StorageResult {
 
 	@Override
 	public StorageResult get() throws InterruptedException, ExecutionException {
-		future.get();
+		response = future.get();
+		checkResponse();
 		return this;
+	}
+
+	private void checkResponse() {
+		if (response.getType() == ActiveStorageProtocol.REQ_WRITE) {
+			len = response.getWriteResponse().getBytesWritten();
+		}
+		if (response.getError() != ActiveStorageProtocol.RET_OK) {
+			LOG.info("Active storage request returned error. Type: " +
+					response.getType() + " Error: " + response.getError());
+		}
 	}
 
 	@Override
 	public StorageResult get(long timeout, TimeUnit unit)
 			throws InterruptedException, ExecutionException, TimeoutException {
-		future.get(timeout, unit);
+		response = future.get(timeout, unit);
+		checkResponse();
 		return this;
 	}
 

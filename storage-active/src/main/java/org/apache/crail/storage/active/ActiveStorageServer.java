@@ -204,16 +204,20 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 								return a;
 							} catch (ClassNotFoundException | ClassCastException
 									| InstantiationException | IllegalAccessException e) {
+								// Error in dynamic class load or instantiation
+								LOG.info("Class not found: '" + createRequest.getName() + "' -> " + e);
 								return null;
 							} catch (Exception e) {
+								// cloud not complete the lookup
 								LOG.info("Object creating is not in namenode.");
 								return null;
 							}
 						});
 				if (action == null) {
-					return new ActiveStorageResponse(ActiveStorageProtocol.RET_NOT_CREATED);
+					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_CREATE,
+							ActiveStorageProtocol.RET_NOT_CREATED);
 				} else {
-					ActiveStorageResponse.EmptyResponse createResponse = new ActiveStorageResponse.EmptyResponse();
+					ActiveStorageResponse.CreateResponse createResponse = new ActiveStorageResponse.CreateResponse();
 					return new ActiveStorageResponse(createResponse);
 				}
 			}
@@ -225,11 +229,12 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 
 				CrailAction action = actions.get(writeRequest.getKey()).get(writeRequest.getAddress());
 				if (action == null) {
-					return new ActiveStorageResponse(ActiveStorageProtocol.RET_NOT_CREATED);
+					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_WRITE,
+							ActiveStorageProtocol.RET_NOT_CREATED);
 				}
-				action.onWrite(writeRequest.getBuffer().duplicate());
+				int written = action.onWrite(writeRequest.getBuffer().duplicate());
 				ActiveStorageResponse.WriteResponse writeResponse =
-						new ActiveStorageResponse.WriteResponse(writeRequest.length());
+						new ActiveStorageResponse.WriteResponse(written);
 				return new ActiveStorageResponse(writeResponse);
 			}
 			case ActiveStorageProtocol.REQ_READ: {
@@ -239,7 +244,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 
 				CrailAction action = actions.get(readRequest.getKey()).get(readRequest.getAddress());
 				if (action == null) {
-					return new ActiveStorageResponse(ActiveStorageProtocol.RET_NOT_CREATED);
+					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_READ,
+							ActiveStorageProtocol.RET_NOT_CREATED);
 				}
 				ByteBuffer data = ByteBuffer.allocateDirect(readRequest.length());
 				action.onRead(data);
@@ -256,7 +262,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 					action.onDelete();
 					actions.get(deleteRequest.getKey()).remove(deleteRequest.getAddress());
 				}
-				ActiveStorageResponse.EmptyResponse deleteResponse = new ActiveStorageResponse.EmptyResponse();
+				ActiveStorageResponse.DeleteResponse deleteResponse = new ActiveStorageResponse.DeleteResponse();
 				return new ActiveStorageResponse(deleteResponse);
 			}
 			default:

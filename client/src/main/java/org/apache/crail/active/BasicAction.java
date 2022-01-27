@@ -32,9 +32,11 @@ public class BasicAction extends CrailAction {
 	}
 
 	@Override
-	public void onWrite(ByteBuffer buffer) {
+	public int onWrite(ByteBuffer buffer) {
 		System.out.println("Crail action on write");
 		myBuffer = ByteBuffer.allocateDirect(buffer.remaining());
 		myBuffer.put(buffer);
+		myBuffer.rewind();
+		return myBuffer.remaining();
 	}
 }

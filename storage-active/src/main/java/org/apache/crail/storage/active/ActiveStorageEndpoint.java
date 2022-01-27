@@ -72,7 +72,7 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 		LOG.info("Active create, class name " + className + ", block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.CreateRequest createReq =
 				new ActiveStorageRequest.CreateRequest(filename, className, block.getLkey(), block.getAddr());
-		ActiveStorageResponse.EmptyResponse createResp = new ActiveStorageResponse.EmptyResponse();
+		ActiveStorageResponse.CreateResponse createResp = new ActiveStorageResponse.CreateResponse();
 
 		ActiveStorageRequest req = new ActiveStorageRequest(createReq);
 		ActiveStorageResponse resp = new ActiveStorageResponse(createResp);
@@ -86,7 +86,7 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 		LOG.info("Active delete, block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.DeleteRequest deleteRequest =
 				new ActiveStorageRequest.DeleteRequest(block.getLkey(), block.getAddr());
-		ActiveStorageResponse.EmptyResponse createResp = new ActiveStorageResponse.EmptyResponse();
+		ActiveStorageResponse.DeleteResponse createResp = new ActiveStorageResponse.DeleteResponse();
 
 		ActiveStorageRequest req = new ActiveStorageRequest(deleteRequest);
 		ActiveStorageResponse resp = new ActiveStorageResponse(createResp);
