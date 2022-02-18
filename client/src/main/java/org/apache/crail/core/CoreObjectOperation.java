@@ -18,24 +18,30 @@
 
 package org.apache.crail.core;
 
-import org.apache.crail.CrailBuffer;
+import java.nio.ByteBuffer;
+
 import org.apache.crail.CrailResult;
 import org.apache.crail.storage.StorageFuture;
 import org.apache.crail.storage.StorageResult;
 import org.apache.crail.utils.MultiFuture;
 
+/**
+ * Represents a remote data operation on an Active Object.
+ *
+ * Same as {@link CoreDataOperation}.
+ */
 class CoreObjectOperation extends MultiFuture<StorageResult, CrailResult> implements CrailResult {
-	private long fileOffset;
-	private int bufferPosition;
-	private int bufferLimit;
-	private int operationLength;
+	private final long fileOffset;
+	private final int bufferPosition;
+	private final int bufferLimit;
+	private final int operationLength;
 
 	// current state
 	private int inProcessLen;
 	private long completedLen;
 	private boolean isSynchronous;
 
-	public CoreObjectOperation(CrailBuffer buffer) throws Exception {
+	public CoreObjectOperation(ByteBuffer buffer) {
 		this.bufferPosition = buffer.position();
 		this.bufferLimit = buffer.limit();
 		this.operationLength = buffer.remaining();

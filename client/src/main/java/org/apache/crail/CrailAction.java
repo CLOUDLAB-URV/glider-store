@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
  * <p>
  * User classes extend this one to define the operations that should
  * run when an active object is accessed for read or write. The user
- * can also define logic to run when the active object is created or
+ * can also define logic to run when the action is created or
  * deleted.
  */
 public abstract class CrailAction {
@@ -59,7 +59,7 @@ public abstract class CrailAction {
 	/**
 	 * This runs when the user reads from a stream obtained from an
 	 * active object proxy through <code>getInputStream</code>.
-	 *
+	 * <p>
 	 * The action should provide the data to be sent to the client by
 	 * writing to the given OutputStream.
 	 *
@@ -70,7 +70,7 @@ public abstract class CrailAction {
 	/**
 	 * This runs when the user writes to a stream obtained from an
 	 * active object proxy through <code>getOutputStream</code>.
-	 *
+	 * <p>
 	 * The action should obtain the data sent from the client by
 	 * reading from the given InputStream.
 	 *

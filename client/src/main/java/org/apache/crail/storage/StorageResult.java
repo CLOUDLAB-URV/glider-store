@@ -20,4 +20,6 @@ package org.apache.crail.storage;
 
 public interface StorageResult {
 	public int getLen();
+
+	default long getChannel() {return 0;}
 }

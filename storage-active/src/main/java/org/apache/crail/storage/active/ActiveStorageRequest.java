@@ -18,12 +18,13 @@
 
 package org.apache.crail.storage.active;
 
-import com.ibm.narpc.NaRPCMessage;
-import org.apache.crail.conf.CrailConstants;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+
+import com.ibm.narpc.NaRPCMessage;
+import com.sun.org.apache.xpath.internal.operations.Bool;
+import org.apache.crail.conf.CrailConstants;
 
 public class ActiveStorageRequest implements NaRPCMessage {
 	public static final int HEADER_SIZE = Integer.BYTES;
@@ -34,12 +35,16 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	private ReadRequest readRequest;
 	private CreateRequest createRequest;
 	private DeleteRequest deleteRequest;
+	private OpenRequest openRequest;
+	private CloseRequest closeRequest;
 
 	public ActiveStorageRequest() {
 		writeRequest = new WriteRequest();
 		readRequest = new ReadRequest();
 		createRequest = new CreateRequest();
 		deleteRequest = new DeleteRequest();
+		openRequest = new OpenRequest();
+		closeRequest = new CloseRequest();
 	}
 
 	public ActiveStorageRequest(WriteRequest writeRequest) {
@@ -62,6 +67,16 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		this.type = ActiveStorageProtocol.REQ_DEL;
 	}
 
+	public ActiveStorageRequest(OpenRequest openRequest) {
+		this.openRequest = openRequest;
+		this.type = ActiveStorageProtocol.REQ_OPEN;
+	}
+
+	public ActiveStorageRequest(CloseRequest closeRequest) {
+		this.closeRequest = closeRequest;
+		this.type = ActiveStorageProtocol.REQ_CLOSE;
+	}
+
 	public int size() {
 		return CSIZE;
 	}
@@ -73,14 +88,25 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	@Override
 	public void update(ByteBuffer buffer) throws IOException {
 		type = buffer.getInt();
-		if (type == ActiveStorageProtocol.REQ_WRITE) {
-			writeRequest.update(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_READ) {
-			readRequest.update(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_CREATE) {
-			createRequest.update(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_DEL) {
-			deleteRequest.update(buffer);
+		switch (type) {
+			case ActiveStorageProtocol.REQ_WRITE:
+				writeRequest.update(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_READ:
+				readRequest.update(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_CREATE:
+				createRequest.update(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_DEL:
+				deleteRequest.update(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_OPEN:
+				openRequest.update(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_CLOSE:
+				closeRequest.update(buffer);
+				break;
 		}
 	}
 
@@ -88,14 +114,25 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	public int write(ByteBuffer buffer) throws IOException {
 		buffer.putInt(type);
 		int written = HEADER_SIZE;
-		if (type == ActiveStorageProtocol.REQ_WRITE) {
-			written += writeRequest.write(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_READ) {
-			written += readRequest.write(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_CREATE) {
-			written += createRequest.write(buffer);
-		} else if (type == ActiveStorageProtocol.REQ_DEL) {
-			written += deleteRequest.write(buffer);
+		switch (type) {
+			case ActiveStorageProtocol.REQ_WRITE:
+				written += writeRequest.write(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_READ:
+				written += readRequest.write(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_CREATE:
+				written += createRequest.write(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_DEL:
+				written += deleteRequest.write(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_OPEN:
+				written += openRequest.write(buffer);
+				break;
+			case ActiveStorageProtocol.REQ_CLOSE:
+				written += closeRequest.write(buffer);
+				break;
 		}
 		return written;
 	}
@@ -116,12 +153,22 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		return deleteRequest;
 	}
 
+	public OpenRequest getOpenRequest() {
+		return openRequest;
+	}
+
+	public CloseRequest getCloseRequest() {
+		return closeRequest;
+	}
+
 	public static class WriteRequest {
-		public static final int FIELDS_SIZE = Integer.BYTES + Long.BYTES + Integer.BYTES;
+		public static final int FIELDS_SIZE = Integer.BYTES + 3 * Long.BYTES + Integer.BYTES;
 		public static final int CSIZE = FIELDS_SIZE + Integer.BYTES + (int) CrailConstants.BLOCK_SIZE;
 
 		private int key;
 		private long address;
+		private long offset;
+		private long channel;
 		private int length;
 		private ByteBuffer data;
 
@@ -129,15 +176,25 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			data = ByteBuffer.allocateDirect((int) CrailConstants.BLOCK_SIZE);
 		}
 
-		public WriteRequest(int key, long address, int length, ByteBuffer buffer) {
+		public WriteRequest(int key, long address, long offset, int length, ByteBuffer buffer, long channel) {
 			this.key = key;
 			this.address = address;
+			this.offset = offset;
 			this.length = length;
 			this.data = buffer;
+			this.channel = channel;
 		}
 
 		public long getAddress() {
 			return address;
+		}
+
+		public long getOffset() {
+			return offset;
+		}
+
+		public long getChannel() {
+			return channel;
 		}
 
 		public int length() {
@@ -159,6 +216,8 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		public void update(ByteBuffer buffer) throws IOException {
 			key = buffer.getInt();
 			address = buffer.getLong();
+			offset = buffer.getLong();
+			channel = buffer.getLong();
 			length = buffer.getInt();
 			int remaining = buffer.getInt();
 			buffer.limit(buffer.position() + remaining);
@@ -170,6 +229,8 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		public int write(ByteBuffer buffer) throws IOException {
 			buffer.putInt(key);
 			buffer.putLong(address);
+			buffer.putLong(offset);
+			buffer.putLong(channel);
 			buffer.putInt(length);
 			buffer.putInt(data.remaining());
 			int written = FIELDS_SIZE + Integer.BYTES + data.remaining();
@@ -179,24 +240,36 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	}
 
 	public static class ReadRequest {
-		public static final int CSIZE = Integer.BYTES + Long.BYTES + Integer.BYTES;
+		public static final int CSIZE = Integer.BYTES + 3 * Long.BYTES + Integer.BYTES;
 
 		private int key;
 		private long address;
+		private long offset;
+		private long channel;
 		private int length;
 
 		public ReadRequest() {
 
 		}
 
-		public ReadRequest(int key, long address, int length) {
+		public ReadRequest(int key, long address, long offset, int length, long channel) {
 			this.key = key;
 			this.address = address;
+			this.offset = offset;
 			this.length = length;
+			this.channel = channel;
 		}
 
 		public long getAddress() {
 			return address;
+		}
+
+		public long getOffset() {
+			return offset;
+		}
+
+		public long getChannel() {
+			return channel;
 		}
 
 		public int length() {
@@ -214,12 +287,16 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		public void update(ByteBuffer buffer) throws IOException {
 			key = buffer.getInt();
 			address = buffer.getLong();
+			offset = buffer.getLong();
+			channel = buffer.getLong();
 			length = buffer.getInt();
 		}
 
 		public int write(ByteBuffer buffer) throws IOException {
 			buffer.putInt(key);
 			buffer.putLong(address);
+			buffer.putLong(offset);
+			buffer.putLong(channel);
 			buffer.putInt(length);
 			return CSIZE;
 		}
@@ -324,6 +401,106 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		public int write(ByteBuffer buffer) throws IOException {
 			buffer.putInt(key);
 			buffer.putLong(address);
+			return CSIZE;
+		}
+	}
+
+	public static class OpenRequest {
+		public static final int CSIZE = Integer.BYTES + Long.BYTES;
+
+		private int key;
+		private long address;
+
+		public OpenRequest() {
+		}
+
+		public OpenRequest(int key, long address) {
+			this.key = key;
+			this.address = address;
+		}
+
+		public long getAddress() {
+			return address;
+		}
+
+		public int getKey() {
+			return key;
+		}
+
+		public int size() {
+			return CSIZE;
+		}
+
+		public void update(ByteBuffer buffer) throws IOException {
+			key = buffer.getInt();
+			address = buffer.getLong();
+		}
+
+		public int write(ByteBuffer buffer) throws IOException {
+			buffer.putInt(key);
+			buffer.putLong(address);
+			return CSIZE;
+		}
+	}
+
+	public static class CloseRequest {
+		public static final int CSIZE = Integer.BYTES + 3 * Long.BYTES + Short.BYTES;
+
+		private int key;
+		private long address;
+		private long channel;
+		private long total;
+		private short isWrite;
+
+		public CloseRequest() {
+		}
+
+		public CloseRequest(int key, long address, long channel, long total, boolean isWrite) {
+			this.key = key;
+			this.address = address;
+			this.channel = channel;
+			this.total = total;
+			this.isWrite = (short) (isWrite ? 0 : 1);
+		}
+
+		public long getAddress() {
+			return address;
+		}
+
+		public int getKey() {
+			return key;
+		}
+
+		public long getChannel() {
+			return channel;
+		}
+
+		public long getTotal() {
+			return total;
+		}
+
+		public boolean isWrite() {
+			return isWrite == 0;
+		}
+
+		public int size() {
+			return CSIZE;
+		}
+
+		public void update(ByteBuffer buffer) throws IOException {
+			key = buffer.getInt();
+			address = buffer.getLong();
+			channel = buffer.getLong();
+			total = buffer.getLong();
+			isWrite = buffer.getShort();
+		}
+
+		public int write(ByteBuffer buffer) throws IOException {
+			buffer.putInt(key);
+			buffer.putLong(address);
+			buffer.putLong(channel);
+			buffer.putLong(total);
+			buffer.putShort(isWrite);
 			return CSIZE;
 		}
 	}

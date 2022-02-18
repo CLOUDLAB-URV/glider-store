@@ -33,6 +33,7 @@ public class ActiveStorageFuture implements StorageFuture, StorageResult {
 
 	private final NaRPCFuture<ActiveStorageRequest, ActiveStorageResponse> future;
 	private int len;
+	private long channel;
 	private ActiveStorageResponse response;
 
 	public ActiveStorageFuture(NaRPCFuture<ActiveStorageRequest, ActiveStorageResponse> future, int len) {
@@ -65,6 +66,10 @@ public class ActiveStorageFuture implements StorageFuture, StorageResult {
 	private void checkResponse() {
 		if (response.getType() == ActiveStorageProtocol.REQ_WRITE) {
 			len = response.getWriteResponse().getBytesWritten();
+		} else if (response.getType() == ActiveStorageProtocol.REQ_READ){
+			len = response.getReadResponse().getBytesRead();
+		} else if (response.getType() == ActiveStorageProtocol.REQ_OPEN){
+			channel = response.getOpenResponse().getChannel();
 		}
 		if (response.getError() != ActiveStorageProtocol.RET_OK) {
 			LOG.info("Active storage request returned error. Type: " +
@@ -88,6 +93,10 @@ public class ActiveStorageFuture implements StorageFuture, StorageResult {
 	@Override
 	public int getLen() {
 		return len;
+	}
+
+	public long getChannel() {
+		return channel;
 	}
 
 }

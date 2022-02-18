@@ -16,8 +16,6 @@ import com.ibm.narpc.NaRPCServerChannel;
 import com.ibm.narpc.NaRPCServerEndpoint;
 import com.ibm.narpc.NaRPCServerGroup;
 import com.ibm.narpc.NaRPCService;
-import org.apache.crail.CrailAction;
-import org.apache.crail.CrailObject;
 import org.apache.crail.CrailStore;
 import org.apache.crail.conf.CrailConfiguration;
 import org.apache.crail.conf.CrailConstants;
@@ -37,7 +35,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 	private boolean alive;
 	private long regions;
 	private long keys;
-	private ConcurrentHashMap<Integer, ConcurrentHashMap<Long, CrailAction>> actions;
+	private ConcurrentHashMap<Integer, ActionManager> actionManagers; // one manager per region
 
 	private ScheduledExecutorService scheduler;
 	private List<String> jars;
@@ -80,7 +78,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 		this.alive = false;
 		this.regions = TcpStorageConstants.STORAGE_TCP_STORAGE_LIMIT / TcpStorageConstants.STORAGE_TCP_ALLOCATION_SIZE;
 		this.keys = 0;
-		this.actions = new ConcurrentHashMap<>();
+		this.actionManagers = new ConcurrentHashMap<>();
 
 		scheduler = Executors.newScheduledThreadPool(1);
 		jars = new LinkedList<>();
@@ -98,12 +96,12 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 	public StorageResource allocateResource() throws Exception {
 		StorageResource resource = null;
 		if (keys < regions) {
-			int fileId = (int) keys++;
-			actions.put(fileId, new ConcurrentHashMap<>());
+			int regionKey = (int) keys++;
+			actionManagers.put(regionKey, new ActionManager(fs));
 			// Object capacity per region is the number of blocks it fits
 			resource = StorageResource.createResource(0,
 					(int) TcpStorageConstants.STORAGE_TCP_ALLOCATION_SIZE,
-					fileId);
+					regionKey);
 		}
 		return resource;
 	}
@@ -127,6 +125,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 			scheduler.shutdown();
 			serverEndpoint.close();
 			serverGroup.close();
+			actionManagers.forEach((k, v) -> v.close());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -191,79 +190,98 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				ActiveStorageRequest.CreateRequest createRequest = request.getCreateRequest();
 				LOG.info("processing active create request, key " + createRequest.getKey()
 						+ ", address " + createRequest.getAddress() + ", action class " + createRequest.getName());
-				CrailAction action = actions.get(createRequest.getKey())
-						.computeIfAbsent(createRequest.getAddress(), key -> {
-							try {
-								Class<? extends CrailAction> actionClass =
-										Class.forName(createRequest.getName()).asSubclass(CrailAction.class);
-								CrailObject node = fs.lookup(createRequest.getPath()).get().asObject();
-								CrailAction a = actionClass.newInstance();
-								Method method = CrailAction.class.getDeclaredMethod("init", CrailObject.class);
-								method.setAccessible(true);
-								method.invoke(a, node);
-								return a;
-							} catch (ClassNotFoundException | ClassCastException
-									| InstantiationException | IllegalAccessException e) {
-								// Error in dynamic class load or instantiation
-								LOG.info("Class not found: '" + createRequest.getName() + "' -> " + e);
-								return null;
-							} catch (Exception e) {
-								// cloud not complete the lookup
-								LOG.info("Object creating is not in namenode.");
-								return null;
-							}
-						});
-				if (action == null) {
-					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_CREATE,
-							ActiveStorageProtocol.RET_NOT_CREATED);
-				} else {
+
+				try {
+					actionManagers.get(createRequest.getKey())
+							.create(createRequest.getAddress(), createRequest.getName(), createRequest.getPath());
 					ActiveStorageResponse.CreateResponse createResponse = new ActiveStorageResponse.CreateResponse();
 					return new ActiveStorageResponse(createResponse);
+				} catch (NoActionException e) {
+					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_CREATE,
+							ActiveStorageProtocol.RET_NOT_CREATED);
 				}
 			}
 			case ActiveStorageProtocol.REQ_WRITE: {
 				ActiveStorageRequest.WriteRequest writeRequest = request.getWriteRequest();
 				LOG.info("processing active write request, key " + writeRequest.getKey()
 						+ ", address " + writeRequest.getAddress() + ", length " + writeRequest.length()
-						+ ", remaining " + writeRequest.getBuffer().remaining());
+						+ ", remaining " + writeRequest.getBuffer().remaining()
+						+ ", channel " + writeRequest.getChannel());
 
-				CrailAction action = actions.get(writeRequest.getKey()).get(writeRequest.getAddress());
-				if (action == null) {
+				try {
+					// TODO: read and write requests include offsets in case it is necessary ordering them.
+					//  It is not needed now because clients perform channel operations synchronously.
+					int written = actionManagers.get(writeRequest.getKey())
+							.write(writeRequest.getAddress(), writeRequest.getBuffer(), writeRequest.getChannel());
+					ActiveStorageResponse.WriteResponse writeResponse =
+							new ActiveStorageResponse.WriteResponse(written);
+					return new ActiveStorageResponse(writeResponse);
+				} catch (NoActionException e) {
 					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_WRITE,
 							ActiveStorageProtocol.RET_NOT_CREATED);
 				}
-				int written = action.onWrite(writeRequest.getBuffer().duplicate());
-				ActiveStorageResponse.WriteResponse writeResponse =
-						new ActiveStorageResponse.WriteResponse(written);
-				return new ActiveStorageResponse(writeResponse);
 			}
 			case ActiveStorageProtocol.REQ_READ: {
 				ActiveStorageRequest.ReadRequest readRequest = request.getReadRequest();
 				LOG.info("processing active read request, address " + readRequest.getAddress()
-						+ ", length " + readRequest.length());
+						+ ", length " + readRequest.length()
+						+ ", channel " + readRequest.getChannel());
 
-				CrailAction action = actions.get(readRequest.getKey()).get(readRequest.getAddress());
-				if (action == null) {
+				ByteBuffer data = ByteBuffer.allocateDirect(readRequest.length());
+				try {
+					int read = actionManagers.get(readRequest.getKey())
+							.read(readRequest.getAddress(), data, readRequest.getChannel());
+					ActiveStorageResponse.ReadResponse readResponse = new ActiveStorageResponse.ReadResponse(data, read);
+					return new ActiveStorageResponse(readResponse);
+				} catch (NoActionException e) {
 					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_READ,
 							ActiveStorageProtocol.RET_NOT_CREATED);
 				}
-				ByteBuffer data = ByteBuffer.allocateDirect(readRequest.length());
-				action.onRead(data);
-				data.clear();
-				ActiveStorageResponse.ReadResponse readResponse = new ActiveStorageResponse.ReadResponse(data);
-				return new ActiveStorageResponse(readResponse);
 			}
 			case ActiveStorageProtocol.REQ_DEL: {
 				ActiveStorageRequest.DeleteRequest deleteRequest = request.getDeleteRequest();
 				LOG.info("processing active delete request, key " + deleteRequest.getKey()
 						+ ", address " + deleteRequest.getAddress());
-				CrailAction action = actions.get(deleteRequest.getKey()).get(deleteRequest.getAddress());
-				if (action != null) {
-					action.onDelete();
-					actions.get(deleteRequest.getKey()).remove(deleteRequest.getAddress());
+				try {
+					actionManagers.get(deleteRequest.getKey()).delete(deleteRequest.getAddress());
+				} catch (NoActionException ignored) {
 				}
 				ActiveStorageResponse.DeleteResponse deleteResponse = new ActiveStorageResponse.DeleteResponse();
 				return new ActiveStorageResponse(deleteResponse);
+			}
+			case ActiveStorageProtocol.REQ_OPEN: {
+				ActiveStorageRequest.OpenRequest openRequest = request.getOpenRequest();
+				LOG.info("processing active channel open, key " + openRequest.getKey()
+						+ ", address " + openRequest.getAddress());
+				try {
+					long channel = actionManagers.get(openRequest.getKey())
+							.openChannel(openRequest.getAddress());
+					ActiveStorageResponse.OpenResponse openResponse = new ActiveStorageResponse.OpenResponse(channel);
+					return new ActiveStorageResponse(openResponse);
+				} catch (NoActionException e) {
+					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_WRITE,
+							ActiveStorageProtocol.RET_NOT_CREATED);
+				}
+			}
+			case ActiveStorageProtocol.REQ_CLOSE: {
+				ActiveStorageRequest.CloseRequest closeRequest = request.getCloseRequest();
+				LOG.info("processing active channel close, key " + closeRequest.getKey()
+						+ ", address " + closeRequest.getAddress()
+						+ ", channel " + closeRequest.getChannel());
+				try {
+					if (closeRequest.isWrite()) {
+						actionManagers.get(closeRequest.getKey())
+								.closeWrite(closeRequest.getAddress(), closeRequest.getChannel());
+					} else {
+						actionManagers.get(closeRequest.getKey())
+								.closeRead(closeRequest.getAddress(), closeRequest.getChannel());
+					}
+				} catch (NoActionException ignored) {
+				} catch (InterruptedException e) {
+					LOG.info("Could not close channel: " + closeRequest.getChannel());
+				}
+				ActiveStorageResponse.CloseResponse closeResponse = new ActiveStorageResponse.CloseResponse();
+				return new ActiveStorageResponse(closeResponse);
 			}
 			default:
 				LOG.info("processing unknown request");

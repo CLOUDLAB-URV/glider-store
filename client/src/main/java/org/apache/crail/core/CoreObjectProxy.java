@@ -1,5 +1,13 @@
 package org.apache.crail.core;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.crail.CrailAction;
 import org.apache.crail.CrailBuffer;
 import org.apache.crail.CrailObjectProxy;
@@ -18,13 +26,9 @@ import org.apache.crail.utils.CrailUtils;
 import org.apache.crail.utils.EndpointCache;
 import org.slf4j.Logger;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
+/**
+ * A proxy to a {@link  org.apache.crail.CrailObject}.
+ */
 public class CoreObjectProxy implements CrailObjectProxy {
 	private static final Logger LOG = CrailUtils.getLogger();
 	private final EndpointCache endpointCache;
@@ -33,9 +37,9 @@ public class CoreObjectProxy implements CrailObjectProxy {
 	private final BlockInfo block;
 	private final FileInfo fileInfo;
 	protected CoreDataStore fs;
-	protected CoreNode node;
-	private long position;
-	private long syncedCapacity;
+	protected CoreObject node;
+
+	// objects position and capacity is always 0
 
 	public CoreObjectProxy(CoreObject node) throws Exception {
 		this.node = node;
@@ -44,14 +48,12 @@ public class CoreObjectProxy implements CrailObjectProxy {
 		this.endpointCache = fs.getDatanodeEndpointCache();
 		this.namenodeClientRpc = fs.getNamenodeClientRpc();
 
-		this.position = 0;
-		this.syncedCapacity = 0;
 
-		LOG.info("crail proxy: position " + position + ", syncCapacity " + syncedCapacity);
+		LOG.info("crail proxy: creating");
 
 		// obtain the object's block from namenode
 		RpcFuture<RpcGetBlock> rpcFuture =
-				namenodeClientRpc.getBlock(fileInfo.getFd(), fileInfo.getToken(), position, syncedCapacity);
+				namenodeClientRpc.getBlock(fileInfo.getFd(), fileInfo.getToken(), 0, 0);
 
 		RpcGetBlock getBlockRes = rpcFuture.get(CrailConstants.RPC_TIMEOUT, TimeUnit.MILLISECONDS);
 		if (!rpcFuture.isDone()) {
@@ -82,14 +84,28 @@ public class CoreObjectProxy implements CrailObjectProxy {
 	}
 
 	@Override
-	public InputStream getInputStream() {
-		return null;
+	public InputStream getInputStream() throws IOException {
+		return Channels.newInputStream(getReadableChannel());
 	}
 
 	@Override
-	public OutputStream getOutputStream() {
-		return null;
+	public OutputStream getOutputStream() throws IOException {
+		return Channels.newOutputStream(getWritableChannel());
 	}
+
+	@Override
+	public ActiveWritableChannel getWritableChannel() throws IOException {
+		return new ActiveWritableChannel(node, endpoint, block);
+	}
+
+	@Override
+	public ActiveReadableChannel getReadableChannel() throws IOException {
+		return new ActiveReadableChannel(node, endpoint, block);
+	}
+
+
+	// TODO: remove these direct operations below -> use streams/channels
+	// -------------------------
 
 	public int write(byte[] bytes) throws Exception {
 		// Analogous to the buffered stream write
@@ -102,14 +118,13 @@ public class CoreObjectProxy implements CrailObjectProxy {
 		// Analogous to the direct stream write
 
 		// For now, the operation includes the full buffer, so only one sub-operation.
-		// FIXME: It should enable multi-operations in the future.
-		CoreObjectOperation multiOperation = new CoreObjectOperation(dataBuf);
+		CoreObjectOperation multiOperation = new CoreObjectOperation(dataBuf.getByteBuffer());
 		int opLen = dataBuf.remaining();
 		CoreSubOperation subOperation =
-				new CoreSubOperation(fileInfo.getFd(), position, multiOperation.getCurrentBufferPosition(), opLen);
+				new CoreSubOperation(fileInfo.getFd(), 0, multiOperation.getCurrentBufferPosition(), opLen);
 		multiOperation.incProcessedLen(opLen);
 
-		LOG.info("proxy write: position " + position + ", length " + opLen);
+		LOG.info("proxy write: position " + 0 + ", length " + opLen);
 
 		// prepare and trigger
 		dataBuf.clear();
@@ -142,13 +157,13 @@ public class CoreObjectProxy implements CrailObjectProxy {
 	@Override
 	public Future<CrailResult> read(CrailBuffer dataBuf) throws Exception {
 		// Analogous to the direct stream read
-		CoreObjectOperation multiOperation = new CoreObjectOperation(dataBuf);
+		CoreObjectOperation multiOperation = new CoreObjectOperation(dataBuf.getByteBuffer());
 		int opLen = dataBuf.remaining();
 		CoreSubOperation subOperation =
-				new CoreSubOperation(fileInfo.getFd(), position, multiOperation.getCurrentBufferPosition(), opLen);
+				new CoreSubOperation(fileInfo.getFd(), 0, multiOperation.getCurrentBufferPosition(), opLen);
 		multiOperation.incProcessedLen(opLen);
 
-		LOG.info("proxy read: position " + position + ", length " + opLen);
+		LOG.info("proxy read: position " + 0 + ", length " + opLen);
 
 		// prepare and trigger
 		dataBuf.clear();

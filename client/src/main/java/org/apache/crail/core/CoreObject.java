@@ -4,7 +4,9 @@ import org.apache.crail.CrailObject;
 import org.apache.crail.CrailObjectProxy;
 import org.apache.crail.metadata.FileInfo;
 
-
+/**
+ * CrailNode holding a computational action.
+ */
 public class CoreObject extends CoreNode implements CrailObject {
 
 	public CoreObject(CoreDataStore fs, FileInfo fileInfo, String path) {

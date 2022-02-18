@@ -29,6 +29,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 	private int type;
 	private WriteResponse writeResponse;
 	private ReadResponse readResponse;
+	private OpenResponse openResponse;
 	private EmptyResponse emptyResponse;
 
 	public ActiveStorageResponse(WriteResponse writeResponse) {
@@ -55,6 +56,18 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		this.error = ActiveStorageProtocol.RET_OK;
 	}
 
+	public ActiveStorageResponse(OpenResponse openResponse) {
+		this.openResponse = openResponse;
+		this.type = ActiveStorageProtocol.REQ_OPEN;
+		this.error = ActiveStorageProtocol.RET_OK;
+	}
+
+	public ActiveStorageResponse(CloseResponse emptyResponse) {
+		this.emptyResponse = emptyResponse;
+		this.type = ActiveStorageProtocol.REQ_CLOSE;
+		this.error = ActiveStorageProtocol.RET_OK;
+	}
+
 	public ActiveStorageResponse(int type, int error) {
 		this.type = type;
 		this.error = error;
@@ -76,6 +89,14 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		return writeResponse;
 	}
 
+	public ReadResponse getReadResponse() {
+		return readResponse;
+	}
+
+	public OpenResponse getOpenResponse() {
+		return openResponse;
+	}
+
 	@Override
 	public void update(ByteBuffer buffer) throws IOException {
 		error = buffer.getInt();
@@ -85,8 +106,11 @@ public class ActiveStorageResponse implements NaRPCMessage {
 				writeResponse.update(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_READ) {
 				readResponse.update(buffer);
+			}  else if (type == ActiveStorageProtocol.REQ_OPEN) {
+				openResponse.update(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_CREATE
-					| type == ActiveStorageProtocol.REQ_DEL) {
+					| type == ActiveStorageProtocol.REQ_DEL
+					| type == ActiveStorageProtocol.REQ_CLOSE) {
 				emptyResponse.update(buffer);
 			}
 		}
@@ -102,8 +126,11 @@ public class ActiveStorageResponse implements NaRPCMessage {
 				written += writeResponse.write(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_READ) {
 				written += readResponse.write(buffer);
+			}  else if (type == ActiveStorageProtocol.REQ_OPEN) {
+				written += openResponse.write(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_CREATE
-					| type == ActiveStorageProtocol.REQ_DEL) {
+					| type == ActiveStorageProtocol.REQ_DEL
+					| type == ActiveStorageProtocol.REQ_CLOSE) {
 				written += emptyResponse.write(buffer);
 			}
 		}
@@ -131,30 +158,66 @@ public class ActiveStorageResponse implements NaRPCMessage {
 
 		public int write(ByteBuffer buffer) throws IOException {
 			buffer.putInt(bytesWritten);
-			return 4;
+			return Integer.BYTES;
 		}
 	}
 
 	public static class ReadResponse {
-
 		private final ByteBuffer data;
+		private int bytesRead;
 
 		public ReadResponse(ByteBuffer data) {
 			this.data = data;
 		}
 
+		public ReadResponse(ByteBuffer data, int read) {
+			this.data = data;
+			this.bytesRead = read;
+		}
+
+		public int getBytesRead() {
+			return bytesRead;
+		}
+
 		public int write(ByteBuffer buffer) throws IOException {
+			buffer.putInt(bytesRead);
 			int written = data.remaining();
 			buffer.putInt(data.remaining());
 			buffer.put(data);
-			return Integer.BYTES + written;
+			return Integer.BYTES + Integer.BYTES + written;
 		}
 
 		public void update(ByteBuffer buffer) throws IOException {
+			this.bytesRead = buffer.getInt();
 			int remaining = buffer.getInt();
 			data.clear().limit(remaining);
 			buffer.limit(buffer.position() + remaining);
 			data.put(buffer);
+		}
+	}
+
+	public static class OpenResponse {
+		private long channel;
+
+		public OpenResponse() {
+			channel = -1;
+		}
+
+		public OpenResponse(long channel) {
+			this.channel = channel;
+		}
+
+		public long getChannel() {
+			return channel;
+		}
+
+		public void update(ByteBuffer buffer) throws IOException {
+			channel = buffer.getLong();
+		}
+
+		public int write(ByteBuffer buffer) throws IOException {
+			buffer.putLong(channel);
+			return Long.BYTES;
 		}
 	}
 
@@ -175,6 +238,9 @@ public class ActiveStorageResponse implements NaRPCMessage {
 	}
 
 	public static class DeleteResponse extends EmptyResponse {
+	}
+
+	public static class CloseResponse extends EmptyResponse {
 	}
 
 }

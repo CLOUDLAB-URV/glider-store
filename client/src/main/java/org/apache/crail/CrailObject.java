@@ -18,6 +18,10 @@
 
 package org.apache.crail;
 
+/**
+ * A Crail node that holds computational actions.
+ * Operate on it by getting a proxy.
+ */
 public interface CrailObject extends CrailNode {
 	long getToken();
 	long getFd();

@@ -1,8 +1,12 @@
 package org.apache.crail;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.Future;
+
+import org.apache.crail.core.ActiveReadableChannel;
+import org.apache.crail.core.ActiveWritableChannel;
 
 /**
  * Proxy interface to access Crail Active Objects
@@ -70,15 +74,35 @@ public interface CrailObjectProxy {
 	 * Obtain an InputStream to read data from this object's action.
 	 * It is a buffered stream to accommodate for remote message size.
 	 *
-	 * @return
+	 * @return An input stream to this object.
+	 * @throws IOException if the necessary channel could not be created.
 	 */
-	InputStream getInputStream();
+	InputStream getInputStream() throws IOException;
 
 	/**
 	 * Obtain an OutputStream to write data to this object's action.
 	 * It is a buffered stream to accommodate for remote message size.
 	 *
-	 * @return
+	 * @return An output stream to this object.
+	 * @throws IOException if the necessary channel could not be created.
 	 */
-	OutputStream getOutputStream();
+	OutputStream getOutputStream() throws IOException;
+
+	/**
+	 * Obtain a WritableChannel to send data to this object's action.
+	 * Buffers can be split to accommodate for remote message size.
+	 *
+	 * @return A WritableChannel
+	 * @throws IOException if the channel could not be created.
+	 */
+	ActiveWritableChannel getWritableChannel() throws IOException;
+
+	/**
+	 * Obtain a ReadableChannel to retrieve data from this object's action.
+	 * Buffers can be split to accommodate for remote message size.
+	 *
+	 * @return A ReadableChannel
+	 * @throws IOException if the channel could not be created.
+	 */
+	ActiveReadableChannel getReadableChannel() throws IOException;
 }
