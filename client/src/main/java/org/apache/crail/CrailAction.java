@@ -1,8 +1,8 @@
 package org.apache.crail;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 
 /**
  * Base class of all Crail Actions.
@@ -40,6 +40,7 @@ public abstract class CrailAction {
 	 *
 	 * @param buffer buffer that will be directly sent to the client.
 	 */
+	@Deprecated
 	public void onRead(ByteBuffer buffer) {}
 
 	/**
@@ -54,6 +55,7 @@ public abstract class CrailAction {
 	 * @param buffer buffer that was sent from the client.
 	 * @return the number of bytes written.
 	 */
+	@Deprecated
 	public int onWrite(ByteBuffer buffer) {return 0;}
 
 	/**
@@ -63,9 +65,9 @@ public abstract class CrailAction {
 	 * The action should provide the data to be sent to the client by
 	 * writing to the given OutputStream.
 	 *
-	 * @param stream Stream data to respond to a client read.
+	 * @param channel Data channel to respond to a client read.
 	 */
-	public void onReadStream(OutputStream stream) {}
+	public void onReadStream(WritableByteChannel channel) {}
 
 	/**
 	 * This runs when the user writes to a stream obtained from an
@@ -74,9 +76,9 @@ public abstract class CrailAction {
 	 * The action should obtain the data sent from the client by
 	 * reading from the given InputStream.
 	 *
-	 * @param stream Stream data sent by a client write.
+	 * @param channel Data channel to receive a client write.
 	 */
-	public void onWriteStream(InputStream stream) {}
+	public void onWriteStream(ReadableByteChannel channel) {}
 
 	/**
 	 * This runs when the Action instance is deleted. That is, when

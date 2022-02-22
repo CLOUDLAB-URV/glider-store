@@ -322,8 +322,7 @@ public class ActionManager {
 		public void run() {
 			lock.lock();
 			try {
-				InputStream stream = Channels.newInputStream(new OnWriteChannel(channel));
-				action.onWriteStream(stream);
+				action.onWriteStream(new OnWriteChannel(channel));
 			} finally {
 				lock.unlock();
 			}
@@ -348,8 +347,7 @@ public class ActionManager {
 		public void run() {
 			lock.lock();
 			try {
-				OutputStream stream = Channels.newOutputStream(new OnReadChannel(channel));
-				action.onReadStream(stream);
+				action.onReadStream(new OnReadChannel(channel));
 			} finally {
 				lock.unlock();
 			}

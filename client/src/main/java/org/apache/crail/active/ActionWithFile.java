@@ -1,6 +1,8 @@
 package org.apache.crail.active;
 
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 
 import org.apache.crail.CrailAction;
 import org.apache.crail.CrailBufferedInputStream;
@@ -70,6 +72,44 @@ public class ActionWithFile extends CrailAction {
 			System.out.println("Error writing to data file for action " + self.getPath());
 			e.printStackTrace();
 			return -1;
+		}
+	}
+
+	@Override
+	public void onReadStream(WritableByteChannel channel) {
+		System.out.println("Crail action with file on read stream");
+		try {
+			ByteBuffer buffer = ByteBuffer.allocateDirect(100 * 1024);
+			CrailBufferedInputStream bufferedStream =
+					myData.getBufferedInputStream(100 * 1024);
+			while (bufferedStream.read(buffer) != -1) {
+				channel.write(buffer);
+				buffer.clear();
+			}
+			bufferedStream.close();
+			channel.close();
+		} catch (Exception e) {
+			System.out.println("Error reading from data file for action " + self.getPath());
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void onWriteStream(ReadableByteChannel channel) {
+		System.out.println("Crail action with file on write stream");
+		try {
+			ByteBuffer buffer = ByteBuffer.allocateDirect(100 * 1024);
+			CrailBufferedOutputStream outputStream =
+					myData.getBufferedOutputStream(100 * 1024);
+			while (channel.read(buffer) != -1) {
+				outputStream.write(buffer);
+				buffer.clear();
+			}
+			outputStream.close();
+			channel.close();
+		} catch (Exception e) {
+			System.out.println("Error writing to data file for action " + self.getPath());
+			e.printStackTrace();
 		}
 	}
 }

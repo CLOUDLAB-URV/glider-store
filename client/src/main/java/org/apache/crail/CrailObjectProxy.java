@@ -20,6 +20,7 @@ public interface CrailObjectProxy {
 	 * @return
 	 * @throws Exception
 	 */
+	@Deprecated
 	int write(byte[] bytes) throws Exception;
 
 	/**
@@ -29,6 +30,7 @@ public interface CrailObjectProxy {
 	 * @return
 	 * @throws Exception
 	 */
+	@Deprecated
 	Future<CrailResult> write(CrailBuffer dataBuf) throws Exception;
 
 	/**
@@ -40,6 +42,7 @@ public interface CrailObjectProxy {
 	 * @return
 	 * @throws Exception
 	 */
+	@Deprecated
 	int read(byte[] bytes) throws Exception;
 
 	/**
@@ -51,6 +54,7 @@ public interface CrailObjectProxy {
 	 * @return
 	 * @throws Exception
 	 */
+	@Deprecated
 	Future<CrailResult> read(CrailBuffer dataBuf) throws Exception;
 
 	/**

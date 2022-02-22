@@ -1,7 +1,5 @@
 package org.apache.crail.active;
 
-import org.apache.crail.CrailAction;
-
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -10,7 +8,12 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.Random;
+
+import org.apache.crail.CrailAction;
 
 /**
  * Sample action implementation that simply saves what's written and logs all
@@ -50,14 +53,16 @@ public class BasicAction extends CrailAction {
 	}
 
 	@Override
-	public void onWriteStream(InputStream stream) {
+	public void onWriteStream(ReadableByteChannel channel) {
+		InputStream stream = Channels.newInputStream(channel);
 		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
 //		System.out.println("file lines = " + reader.lines().count());
 		reader.lines().forEach(l -> System.out.println(l.substring(1, 50)));
 	}
 
 	@Override
-	public void onReadStream(OutputStream stream) {
+	public void onReadStream(WritableByteChannel channel) {
+		OutputStream stream = Channels.newOutputStream(channel);
 		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter((stream)));
 
 		int lowLimit = 48; // numeral '0'
