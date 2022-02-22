@@ -83,6 +83,7 @@ public class ActionWithFile extends CrailAction {
 			CrailBufferedInputStream bufferedStream =
 					myData.getBufferedInputStream(100 * 1024);
 			while (bufferedStream.read(buffer) != -1) {
+				buffer.flip();
 				channel.write(buffer);
 				buffer.clear();
 			}
@@ -102,6 +103,7 @@ public class ActionWithFile extends CrailAction {
 			CrailBufferedOutputStream outputStream =
 					myData.getBufferedOutputStream(100 * 1024);
 			while (channel.read(buffer) != -1) {
+				buffer.flip();
 				outputStream.write(buffer);
 				buffer.clear();
 			}
