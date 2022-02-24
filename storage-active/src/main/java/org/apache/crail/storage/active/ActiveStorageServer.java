@@ -205,7 +205,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				ActiveStorageRequest.WriteRequest writeRequest = request.getWriteRequest();
 				LOG.info("processing active write request, key " + writeRequest.getKey()
 						+ ", address " + writeRequest.getAddress() + ", length " + writeRequest.length()
-						+ ", remaining " + writeRequest.getBuffer().remaining()
+						+ ", offset " + writeRequest.getOffset()
 						+ ", channel " + writeRequest.getChannel());
 
 				try {
@@ -225,6 +225,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				ActiveStorageRequest.ReadRequest readRequest = request.getReadRequest();
 				LOG.info("processing active read request, address " + readRequest.getAddress()
 						+ ", length " + readRequest.length()
+						+ ", offset " + readRequest.getOffset()
 						+ ", channel " + readRequest.getChannel());
 
 				ByteBuffer data = ByteBuffer.allocateDirect(readRequest.length());

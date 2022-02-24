@@ -43,10 +43,10 @@ public class OnReadChannel implements WritableByteChannel {
 				slice.put(src);
 			} else {
 				opLen += slice.remaining();
-				int orLimit = src.limit();
+				int oldLimit = src.limit();
 				src.limit(src.position() + slice.remaining());
 				slice.put(src);
-				src.limit(orLimit);
+				src.limit(oldLimit);
 			}
 
 			// when the current slice gets full, queue it for return

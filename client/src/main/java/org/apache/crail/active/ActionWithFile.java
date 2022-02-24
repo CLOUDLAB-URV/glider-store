@@ -46,36 +46,6 @@ public class ActionWithFile extends CrailAction {
 	}
 
 	@Override
-	public void onRead(ByteBuffer buffer) {
-		System.out.println("Crail action on read");
-		try {
-			CrailBufferedInputStream bufferedStream =
-					myData.getBufferedInputStream(buffer.remaining());
-			bufferedStream.read(buffer);
-			bufferedStream.close();
-		} catch (Exception e) {
-			System.out.println("Error reading from data file for action " + self.getPath());
-			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public int onWrite(ByteBuffer buffer) {
-		System.out.println("Crail action on write");
-		try {
-			CrailBufferedOutputStream outputStream =
-					myData.getBufferedOutputStream(buffer.remaining());
-			outputStream.write(buffer);
-			outputStream.close();
-			return buffer.rewind().remaining();
-		} catch (Exception e) {
-			System.out.println("Error writing to data file for action " + self.getPath());
-			e.printStackTrace();
-			return -1;
-		}
-	}
-
-	@Override
 	public void onReadStream(WritableByteChannel channel) {
 		System.out.println("Crail action with file on read stream");
 		try {

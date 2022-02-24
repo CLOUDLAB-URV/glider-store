@@ -25,8 +25,8 @@ import org.slf4j.Logger;
  */
 public class ActionManager {
 	private static final Logger LOG = CrailUtils.getLogger();
-	private static final int CH_SIZE = 2;    // FIXME: move to config
-	private static final int ACTION_THREADS = 2;
+	private static final int CH_SIZE = 5;    // FIXME: move to config
+//	private static final int ACTION_THREADS = 2;
 
 	private final CrailStore fs;
 	private final ConcurrentHashMap<Long, CrailAction> actions;
@@ -42,7 +42,8 @@ public class ActionManager {
 		actions = new ConcurrentHashMap<>();
 		actionLocks = new ConcurrentHashMap<>();
 		channels = new ConcurrentHashMap<>();
-		actionExecutorService = Executors.newFixedThreadPool(ACTION_THREADS);
+//		actionExecutorService = Executors.newFixedThreadPool(ACTION_THREADS);
+		actionExecutorService = Executors.newCachedThreadPool();
 		idGen = new AtomicLong(0);
 	}
 
@@ -144,7 +145,6 @@ public class ActionManager {
 			buffer.clear();
 			return buffer.remaining();
 		} else {
-			LOG.info("Stream Read!");
 			BlockingQueue<OperationSlice> channel;
 			synchronized (channels) {
 				channel = channels.get(channelId);
@@ -170,6 +170,7 @@ public class ActionManager {
 			// wait until the buffer is filled (could be partial if end-of-stream)
 			try {
 				op.waitCompleted();
+				LOG.info("active read completed, action " + actionId + ", channel " + channelId);
 			} catch (InterruptedException e) {
 				// interruption means that the channel was closed after this slice
 				// was queued but never taken from queue
@@ -205,7 +206,6 @@ public class ActionManager {
 		if (channelId == -1) { // Direct write
 			return action.onWrite(buffer.duplicate()); // TODO: remove direct writes everywhere
 		} else {
-			LOG.info("Stream Write!");
 			BlockingQueue<OperationSlice> channel;
 			synchronized (channels) {
 				channel = channels.get(channelId);
@@ -219,6 +219,9 @@ public class ActionManager {
 			try {
 				// TODO: deal with an server-side-early-closed channel
 				channel.put(new OperationSlice(buffer, true));
+				// FIXME: do not block indefinitely, fail and let the client retry.
+				//  Otherwise network threads can quickly stale.
+				LOG.info("active write queued, action " + actionId + ", channel " + channelId);
 			} catch (InterruptedException e) {
 				// put interrupted means the channel was closed before end-of-stream and this operation is discarded
 				e.printStackTrace();
