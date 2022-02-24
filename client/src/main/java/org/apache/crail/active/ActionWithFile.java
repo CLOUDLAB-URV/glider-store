@@ -46,7 +46,7 @@ public class ActionWithFile extends CrailAction {
 	}
 
 	@Override
-	public void onReadStream(WritableByteChannel channel) {
+	public void onRead(WritableByteChannel channel) {
 		System.out.println("Crail action with file on read stream");
 		try {
 			ByteBuffer buffer = ByteBuffer.allocateDirect(100 * 1024);
@@ -66,7 +66,7 @@ public class ActionWithFile extends CrailAction {
 	}
 
 	@Override
-	public void onWriteStream(ReadableByteChannel channel) {
+	public void onWrite(ReadableByteChannel channel) {
 		System.out.println("Crail action with file on write stream");
 		try {
 			ByteBuffer buffer = ByteBuffer.allocateDirect(100 * 1024);

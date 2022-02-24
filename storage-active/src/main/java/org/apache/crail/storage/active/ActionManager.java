@@ -140,45 +140,39 @@ public class ActionManager {
 		if (action == null) {
 			throw new NoActionException();
 		}
-		if (channelId == -1) { // Direct read
-			action.onRead(buffer); // TODO: remove direct reads everywhere
-			buffer.clear();
-			return buffer.remaining();
-		} else {
-			BlockingQueue<OperationSlice> channel;
-			synchronized (channels) {
-				channel = channels.get(channelId);
-				if (channel == null) {  // channel is new
-					channel = new ArrayBlockingQueue<>(CH_SIZE);
-					channels.put(channelId, channel);
-					// submit the read task to generate data from action
-					actionExecutorService.submit(new OnReadOperation(action, channel, actionLocks.get(actionId)));
-				}
+		BlockingQueue<OperationSlice> channel;
+		synchronized (channels) {
+			channel = channels.get(channelId);
+			if (channel == null) {  // channel is new
+				channel = new ArrayBlockingQueue<>(CH_SIZE);
+				channels.put(channelId, channel);
+				// submit the read task to generate data from action
+				actionExecutorService.submit(new OnReadOperation(action, channel, actionLocks.get(actionId)));
 			}
-			if (!channel.isEmpty() && channel.peek().getSlice() == null) {
-				// end-of-stream -> buffer isn't affected
-				return -1;
-			}
-			// queue this buffer request's buffer as an operation slice for the task to fill
-			OperationSlice op = new OperationSlice(buffer, false);
-			try {
-				channel.put(op);
-			} catch (InterruptedException e) {
-				// put interrupted should mean the channel was closed
-				e.printStackTrace();
-			}
-			// wait until the buffer is filled (could be partial if end-of-stream)
-			try {
-				op.waitCompleted();
-				LOG.info("active read completed, action " + actionId + ", channel " + channelId);
-			} catch (InterruptedException e) {
-				// interruption means that the channel was closed after this slice
-				// was queued but never taken from queue
-				e.printStackTrace();
-			}
-			// return actual bytes read (should always be >= 0)
-			return op.getBytesProcessed();
 		}
+		if (!channel.isEmpty() && channel.peek().getSlice() == null) {
+			// end-of-stream -> buffer isn't affected
+			return -1;
+		}
+		// queue this buffer request's buffer as an operation slice for the task to fill
+		OperationSlice op = new OperationSlice(buffer, false);
+		try {
+			channel.put(op);
+		} catch (InterruptedException e) {
+			// put interrupted should mean the channel was closed
+			e.printStackTrace();
+		}
+		// wait until the buffer is filled (could be partial if end-of-stream)
+		try {
+			op.waitCompleted();
+			LOG.info("active read completed, action " + actionId + ", channel " + channelId);
+		} catch (InterruptedException e) {
+			// interruption means that the channel was closed after this slice
+			// was queued but never taken from queue
+			e.printStackTrace();
+		}
+		// return actual bytes read (should always be >= 0)
+		return op.getBytesProcessed();
 	}
 
 	/**
@@ -203,31 +197,27 @@ public class ActionManager {
 		if (action == null) {
 			throw new NoActionException();
 		}
-		if (channelId == -1) { // Direct write
-			return action.onWrite(buffer.duplicate()); // TODO: remove direct writes everywhere
-		} else {
-			BlockingQueue<OperationSlice> channel;
-			synchronized (channels) {
-				channel = channels.get(channelId);
-				if (channel == null) {  // channel is new
-					channel = new ArrayBlockingQueue<>(CH_SIZE);
-					channels.put(channelId, channel);
-					actionExecutorService.submit(new OnWriteOperation(action, channel, actionLocks.get(actionId)));
-				}
+		BlockingQueue<OperationSlice> channel;
+		synchronized (channels) {
+			channel = channels.get(channelId);
+			if (channel == null) {  // channel is new
+				channel = new ArrayBlockingQueue<>(CH_SIZE);
+				channels.put(channelId, channel);
+				actionExecutorService.submit(new OnWriteOperation(action, channel, actionLocks.get(actionId)));
 			}
-			int len = buffer.remaining();
-			try {
-				// TODO: deal with an server-side-early-closed channel
-				channel.put(new OperationSlice(buffer, true));
-				// FIXME: do not block indefinitely, fail and let the client retry.
-				//  Otherwise network threads can quickly stale.
-				LOG.info("active write queued, action " + actionId + ", channel " + channelId);
-			} catch (InterruptedException e) {
-				// put interrupted means the channel was closed before end-of-stream and this operation is discarded
-				e.printStackTrace();
-			}
-			return len;
 		}
+		int len = buffer.remaining();
+		try {
+			// TODO: deal with an server-side-early-closed channel, and already closed channels
+			channel.put(new OperationSlice(buffer, true));
+			// FIXME: do not block indefinitely, fail and let the client retry.
+			//  Otherwise network threads can quickly stale.
+			LOG.info("active write queued, action " + actionId + ", channel " + channelId);
+		} catch (InterruptedException e) {
+			// put interrupted means the channel was closed before end-of-stream and this operation is discarded
+			e.printStackTrace();
+		}
+		return len;
 	}
 
 	/**
@@ -295,6 +285,7 @@ public class ActionManager {
 
 	/**
 	 * Generate the next chanel identifier.
+	 *
 	 * @param actionId Action the new channel will be linked to.
 	 * @return The identifier for the new channel.
 	 * @throws NoActionException if the action is not in this manager.
@@ -325,7 +316,7 @@ public class ActionManager {
 		public void run() {
 			lock.lock();
 			try {
-				action.onWriteStream(new OnWriteChannel(channel));
+				action.onWrite(new OnWriteChannel(channel));
 			} finally {
 				lock.unlock();
 			}
@@ -350,7 +341,7 @@ public class ActionManager {
 		public void run() {
 			lock.lock();
 			try {
-				action.onReadStream(new OnReadChannel(channel));
+				action.onRead(new OnReadChannel(channel));
 			} finally {
 				lock.unlock();
 			}

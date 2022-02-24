@@ -12,50 +12,6 @@ import org.apache.crail.core.ActiveWritableChannel;
  * Proxy interface to access Crail Active Objects
  */
 public interface CrailObjectProxy {
-	/**
-	 * Send a byte array directly to this object's action. The array is
-	 * wrapped in a CrailBuffer.
-	 *
-	 * @param bytes
-	 * @return
-	 * @throws Exception
-	 */
-	@Deprecated
-	int write(byte[] bytes) throws Exception;
-
-	/**
-	 * Sent a byte buffer directly to this object's action.
-	 *
-	 * @param dataBuf
-	 * @return
-	 * @throws Exception
-	 */
-	@Deprecated
-	Future<CrailResult> write(CrailBuffer dataBuf) throws Exception;
-
-	/**
-	 * Retrieve a byte array directly from this object's action. The
-	 * given array will be populated with the data returned from the
-	 * action.
-	 *
-	 * @param bytes
-	 * @return
-	 * @throws Exception
-	 */
-	@Deprecated
-	int read(byte[] bytes) throws Exception;
-
-	/**
-	 * Retrieve a byte buffer directly from this object's action. The
-	 * given buffer will be populated with the data returned from the
-	 * action.
-	 *
-	 * @param dataBuf
-	 * @return
-	 * @throws Exception
-	 */
-	@Deprecated
-	Future<CrailResult> read(CrailBuffer dataBuf) throws Exception;
 
 	/**
 	 * Instantiates an action on this object. Each object can only

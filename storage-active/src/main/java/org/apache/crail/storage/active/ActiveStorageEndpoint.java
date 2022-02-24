@@ -1,5 +1,9 @@
 package org.apache.crail.storage.active;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
+
 import com.ibm.narpc.NaRPCEndpoint;
 import com.ibm.narpc.NaRPCFuture;
 import org.apache.crail.CrailBuffer;
@@ -8,10 +12,6 @@ import org.apache.crail.storage.ActiveEndpoint;
 import org.apache.crail.storage.StorageFuture;
 import org.apache.crail.utils.CrailUtils;
 import org.slf4j.Logger;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 
 public class ActiveStorageEndpoint implements ActiveEndpoint {
 	private static final Logger LOG = CrailUtils.getLogger();
@@ -38,15 +38,13 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 	@Override
 	public StorageFuture read(CrailBuffer buffer, BlockInfo block, long offset)
 			throws IOException, InterruptedException {
-		// Individual read without channel/stream
-		return readStream(buffer.getByteBuffer(), block, offset, -1);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public StorageFuture write(CrailBuffer buffer, BlockInfo block, long offset)
 			throws IOException, InterruptedException {
-		// Individual write without channel/stream
-		return writeStream(buffer.getByteBuffer(), block, offset, -1);
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

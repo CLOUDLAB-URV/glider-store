@@ -5,7 +5,6 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
@@ -25,18 +24,7 @@ public class CounterAction extends CrailAction {
 	public void onDelete() {}
 
 	@Override
-	public void onRead(ByteBuffer buffer) {
-		buffer.putLong(count);
-	}
-
-	@Override
-	public int onWrite(ByteBuffer buffer) {
-		count += buffer.getLong();
-		return Long.BYTES;
-	}
-
-	@Override
-	public void onReadStream(WritableByteChannel channel) {
+	public void onRead(WritableByteChannel channel) {
 		OutputStream stream = Channels.newOutputStream(channel);
 		DataOutputStream dataOutputStream = new DataOutputStream(stream);
 		try {
@@ -48,7 +36,7 @@ public class CounterAction extends CrailAction {
 	}
 
 	@Override
-	public void onWriteStream(ReadableByteChannel channel) {
+	public void onWrite(ReadableByteChannel channel) {
 		InputStream stream = Channels.newInputStream(channel);
 		DataInputStream dataInputStream = new DataInputStream(stream);
 		try {

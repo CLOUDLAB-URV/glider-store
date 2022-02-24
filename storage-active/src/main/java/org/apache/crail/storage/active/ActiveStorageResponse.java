@@ -18,10 +18,10 @@
 
 package org.apache.crail.storage.active;
 
-import com.ibm.narpc.NaRPCMessage;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import com.ibm.narpc.NaRPCMessage;
 
 public class ActiveStorageResponse implements NaRPCMessage {
 	public static final int HEADER_SIZE = Integer.BYTES + Integer.BYTES;
@@ -106,7 +106,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 				writeResponse.update(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_READ) {
 				readResponse.update(buffer);
-			}  else if (type == ActiveStorageProtocol.REQ_OPEN) {
+			} else if (type == ActiveStorageProtocol.REQ_OPEN) {
 				openResponse.update(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_CREATE
 					| type == ActiveStorageProtocol.REQ_DEL
@@ -126,7 +126,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 				written += writeResponse.write(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_READ) {
 				written += readResponse.write(buffer);
-			}  else if (type == ActiveStorageProtocol.REQ_OPEN) {
+			} else if (type == ActiveStorageProtocol.REQ_OPEN) {
 				written += openResponse.write(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_CREATE
 					| type == ActiveStorageProtocol.REQ_DEL

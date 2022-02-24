@@ -23,7 +23,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 import com.ibm.narpc.NaRPCMessage;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.crail.conf.CrailConstants;
 
 public class ActiveStorageRequest implements NaRPCMessage {
@@ -311,7 +310,6 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		private String path;
 
 		public CreateRequest() {
-
 		}
 
 		public CreateRequest(String filename, String className, int key, long address) {

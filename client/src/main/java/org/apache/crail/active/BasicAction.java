@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
@@ -21,7 +20,6 @@ import org.apache.crail.CrailAction;
  * The streaming methods log the input stream, and generate a random output stream.
  */
 public class BasicAction extends CrailAction {
-	private ByteBuffer myBuffer;
 
 	@Override
 	public void onCreate() {
@@ -34,26 +32,8 @@ public class BasicAction extends CrailAction {
 	}
 
 	@Override
-	public void onRead(ByteBuffer buffer) {
-		System.out.println("Crail action on read");
-		if (myBuffer == null) {
-			myBuffer = ByteBuffer.allocateDirect(buffer.remaining());
-		}
-		myBuffer.clear().limit(buffer.remaining());
-		buffer.put(myBuffer);
-	}
-
-	@Override
-	public int onWrite(ByteBuffer buffer) {
+	public void onWrite(ReadableByteChannel channel) {
 		System.out.println("Crail action on write");
-		myBuffer = ByteBuffer.allocateDirect(buffer.remaining());
-		myBuffer.put(buffer);
-		myBuffer.rewind();
-		return myBuffer.remaining();
-	}
-
-	@Override
-	public void onWriteStream(ReadableByteChannel channel) {
 		InputStream stream = Channels.newInputStream(channel);
 		BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
 //		System.out.println("file lines = " + reader.lines().count());
@@ -61,7 +41,8 @@ public class BasicAction extends CrailAction {
 	}
 
 	@Override
-	public void onReadStream(WritableByteChannel channel) {
+	public void onRead(WritableByteChannel channel) {
+		System.out.println("Crail action on read");
 		OutputStream stream = Channels.newOutputStream(channel);
 		BufferedWriter writer = new BufferedWriter(new OutputStreamWriter((stream)));
 

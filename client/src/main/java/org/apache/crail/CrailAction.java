@@ -1,6 +1,5 @@
 package org.apache.crail;
 
-import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
@@ -30,35 +29,6 @@ public abstract class CrailAction {
 	public void onCreate() {}
 
 	/**
-	 * This runs when the user calls <code>read</code> directly to
-	 * the active object proxy by providing a specific byte array
-	 * or ByteBuffer.
-	 * <p>
-	 * The action should populate the given ByteBuffer with the data
-	 * that is to be returned to the client. The size of the buffer
-	 * must fit into an RPC message.
-	 *
-	 * @param buffer buffer that will be directly sent to the client.
-	 */
-	@Deprecated
-	public void onRead(ByteBuffer buffer) {}
-
-	/**
-	 * This runs when the user calls <code>write</code> directly to
-	 * the active object proxy by providing a specific byte array
-	 * or ByteBuffer.
-	 * <p>
-	 * The action should obtain the data sent by the client from the
-	 * given ByteBuffer. The size of the buffer must fit into an RPC
-	 * message.
-	 *
-	 * @param buffer buffer that was sent from the client.
-	 * @return the number of bytes written.
-	 */
-	@Deprecated
-	public int onWrite(ByteBuffer buffer) {return 0;}
-
-	/**
 	 * This runs when the user reads from a stream obtained from an
 	 * active object proxy through <code>getInputStream</code>.
 	 * <p>
@@ -67,7 +37,7 @@ public abstract class CrailAction {
 	 *
 	 * @param channel Data channel to respond to a client read.
 	 */
-	public void onReadStream(WritableByteChannel channel) {}
+	public void onRead(WritableByteChannel channel) {}
 
 	/**
 	 * This runs when the user writes to a stream obtained from an
@@ -78,7 +48,7 @@ public abstract class CrailAction {
 	 *
 	 * @param channel Data channel to receive a client write.
 	 */
-	public void onWriteStream(ReadableByteChannel channel) {}
+	public void onWrite(ReadableByteChannel channel) {}
 
 	/**
 	 * This runs when the Action instance is deleted. That is, when
