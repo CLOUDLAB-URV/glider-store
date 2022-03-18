@@ -49,7 +49,7 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 
 	@Override
 	public StorageFuture create(String filename, String className, BlockInfo block) throws IOException {
-		LOG.info("Active create, class name " + className + ", block " + block.getLkey() + "/" + block.getAddr());
+		// LOG.info("Active create, class name " + className + ", block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.CreateRequest createReq =
 				new ActiveStorageRequest.CreateRequest(filename, className, block.getLkey(), block.getAddr());
 		ActiveStorageResponse.CreateResponse createResp = new ActiveStorageResponse.CreateResponse();
@@ -63,7 +63,7 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 
 	@Override
 	public StorageFuture delete(BlockInfo block) throws IOException {
-		LOG.info("Active delete, block " + block.getLkey() + "/" + block.getAddr());
+		// LOG.info("Active delete, block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.DeleteRequest deleteRequest =
 				new ActiveStorageRequest.DeleteRequest(block.getLkey(), block.getAddr());
 		ActiveStorageResponse.DeleteResponse createResp = new ActiveStorageResponse.DeleteResponse();
@@ -77,8 +77,8 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 
 	@Override
 	public StorageFuture openStream(BlockInfo block) throws IOException {
-		LOG.info("Active open channel, "
-				+ "block " + block.getLkey() + "/" + block.getAddr());
+		// LOG.info("Active open channel, "
+		// 		+ "block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.OpenRequest openRequest =
 				new ActiveStorageRequest.OpenRequest(block.getLkey(), block.getAddr());
 		ActiveStorageResponse.OpenResponse openResponse = new ActiveStorageResponse.OpenResponse();
@@ -93,9 +93,9 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 	@Override
 	public StorageFuture writeStream(ByteBuffer buffer, BlockInfo block, long offset, long channelId)
 			throws IOException {
-		LOG.info("Active write, channel " + channelId + ", buffer " + buffer.remaining()
-				+ ", block " + block.getLkey() + "/" + block.getAddr()
-				+ ", offset " + offset);
+		// LOG.info("Active write, channel " + channelId + ", buffer " + buffer.remaining()
+		// 		+ ", block " + block.getLkey() + "/" + block.getAddr()
+		// 		+ ", offset " + offset);
 		ActiveStorageRequest.WriteRequest writeReq =
 				new ActiveStorageRequest.WriteRequest(block.getLkey(), block.getAddr(), offset,
 						buffer.remaining(), buffer, channelId);
@@ -111,9 +111,9 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 	@Override
 	public StorageFuture readStream(ByteBuffer buffer, BlockInfo block, long offset, long channelId)
 			throws IOException {
-		LOG.info("Active read, channel " + channelId + ", buffer " + buffer.remaining()
-				+ ", block " + block.getLkey() + "/" + block.getAddr()
-				+ ", offset " + offset);
+		// LOG.info("Active read, channel " + channelId + ", buffer " + buffer.remaining()
+		// 		+ ", block " + block.getLkey() + "/" + block.getAddr()
+		// 		+ ", offset " + offset);
 		ActiveStorageRequest.ReadRequest readReq =
 				new ActiveStorageRequest.ReadRequest(block.getLkey(), block.getAddr(), offset, buffer.remaining(), channelId);
 		ActiveStorageResponse.ReadResponse readResp = new ActiveStorageResponse.ReadResponse(buffer);
@@ -127,9 +127,9 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 
 	@Override
 	public StorageFuture closeWrite(BlockInfo block, long lastPos, long channelId) throws IOException {
-		LOG.info("Active close write, channel " + channelId
-				+ ", block " + block.getLkey() + "/" + block.getAddr()
-				+ ", lastPos " + lastPos);
+		// LOG.info("Active close write, channel " + channelId
+		// 		+ ", block " + block.getLkey() + "/" + block.getAddr()
+		// 		+ ", lastPos " + lastPos);
 		ActiveStorageRequest.CloseRequest closeReq =
 				new ActiveStorageRequest.CloseRequest(block.getLkey(), block.getAddr(), channelId, lastPos, true);
 		return closeStream(closeReq);
@@ -137,9 +137,9 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 
 	@Override
 	public StorageFuture closeRead(BlockInfo block, long lastPos, long channelId) throws IOException {
-		LOG.info("Active close read, channel " + channelId
-				+ ", block " + block.getLkey() + "/" + block.getAddr()
-				+ ", lastPos " + lastPos);
+		// LOG.info("Active close read, channel " + channelId
+		// 		+ ", block " + block.getLkey() + "/" + block.getAddr()
+		// 		+ ", lastPos " + lastPos);
 		ActiveStorageRequest.CloseRequest closeReq =
 				new ActiveStorageRequest.CloseRequest(block.getLkey(), block.getAddr(), channelId, lastPos, false);
 		return closeStream(closeReq);

@@ -188,8 +188,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 		switch (request.type()) {
 			case ActiveStorageProtocol.REQ_CREATE: {
 				ActiveStorageRequest.CreateRequest createRequest = request.getCreateRequest();
-				LOG.info("processing active create request, key " + createRequest.getKey()
-						+ ", address " + createRequest.getAddress() + ", action class " + createRequest.getName());
+				// LOG.info("processing active create request, key " + createRequest.getKey()
+				// 		+ ", address " + createRequest.getAddress() + ", action class " + createRequest.getName());
 
 				try {
 					actionManagers.get(createRequest.getKey())
@@ -203,10 +203,10 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 			}
 			case ActiveStorageProtocol.REQ_WRITE: {
 				ActiveStorageRequest.WriteRequest writeRequest = request.getWriteRequest();
-				LOG.info("processing active write request, key " + writeRequest.getKey()
-						+ ", address " + writeRequest.getAddress() + ", length " + writeRequest.length()
-						+ ", offset " + writeRequest.getOffset()
-						+ ", channel " + writeRequest.getChannel());
+				// LOG.info("processing active write request, key " + writeRequest.getKey()
+				// 		+ ", address " + writeRequest.getAddress() + ", length " + writeRequest.length()
+				// 		+ ", offset " + writeRequest.getOffset()
+				// 		+ ", channel " + writeRequest.getChannel());
 
 				try {
 					// TODO: read and write requests include offsets in case it is necessary ordering them.
@@ -223,10 +223,10 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 			}
 			case ActiveStorageProtocol.REQ_READ: {
 				ActiveStorageRequest.ReadRequest readRequest = request.getReadRequest();
-				LOG.info("processing active read request, address " + readRequest.getAddress()
-						+ ", length " + readRequest.length()
-						+ ", offset " + readRequest.getOffset()
-						+ ", channel " + readRequest.getChannel());
+				// LOG.info("processing active read request, address " + readRequest.getAddress()
+				// 		+ ", length " + readRequest.length()
+				// 		+ ", offset " + readRequest.getOffset()
+				// 		+ ", channel " + readRequest.getChannel());
 
 				ByteBuffer data = ByteBuffer.allocateDirect(readRequest.length());
 				try {
@@ -241,8 +241,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 			}
 			case ActiveStorageProtocol.REQ_DEL: {
 				ActiveStorageRequest.DeleteRequest deleteRequest = request.getDeleteRequest();
-				LOG.info("processing active delete request, key " + deleteRequest.getKey()
-						+ ", address " + deleteRequest.getAddress());
+				// LOG.info("processing active delete request, key " + deleteRequest.getKey()
+				// 		+ ", address " + deleteRequest.getAddress());
 				try {
 					actionManagers.get(deleteRequest.getKey()).delete(deleteRequest.getAddress());
 				} catch (NoActionException ignored) {
@@ -252,8 +252,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 			}
 			case ActiveStorageProtocol.REQ_OPEN: {
 				ActiveStorageRequest.OpenRequest openRequest = request.getOpenRequest();
-				LOG.info("processing active channel open, key " + openRequest.getKey()
-						+ ", address " + openRequest.getAddress());
+				// LOG.info("processing active channel open, key " + openRequest.getKey()
+				// 		+ ", address " + openRequest.getAddress());
 				try {
 					long channel = actionManagers.get(openRequest.getKey())
 							.openChannel(openRequest.getAddress());
@@ -266,9 +266,9 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 			}
 			case ActiveStorageProtocol.REQ_CLOSE: {
 				ActiveStorageRequest.CloseRequest closeRequest = request.getCloseRequest();
-				LOG.info("processing active channel close, key " + closeRequest.getKey()
-						+ ", address " + closeRequest.getAddress()
-						+ ", channel " + closeRequest.getChannel());
+				// LOG.info("processing active channel close, key " + closeRequest.getKey()
+				// 		+ ", address " + closeRequest.getAddress()
+				// 		+ ", channel " + closeRequest.getChannel());
 				try {
 					if (closeRequest.isWrite()) {
 						actionManagers.get(closeRequest.getKey())

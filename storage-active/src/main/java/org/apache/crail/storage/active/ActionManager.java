@@ -1,10 +1,7 @@
 package org.apache.crail.storage.active;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
-import java.nio.channels.Channels;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -165,7 +162,7 @@ public class ActionManager {
 		// wait until the buffer is filled (could be partial if end-of-stream)
 		try {
 			op.waitCompleted();
-			LOG.info("active read completed, action " + actionId + ", channel " + channelId);
+			// LOG.info("active read completed, action " + actionId + ", channel " + channelId);
 		} catch (InterruptedException e) {
 			// interruption means that the channel was closed after this slice
 			// was queued but never taken from queue
@@ -212,7 +209,7 @@ public class ActionManager {
 			channel.put(new OperationSlice(buffer, true));
 			// FIXME: do not block indefinitely, fail and let the client retry.
 			//  Otherwise network threads can quickly stale.
-			LOG.info("active write queued, action " + actionId + ", channel " + channelId);
+			// LOG.info("active write queued, action " + actionId + ", channel " + channelId);
 		} catch (InterruptedException e) {
 			// put interrupted means the channel was closed before end-of-stream and this operation is discarded
 			e.printStackTrace();
