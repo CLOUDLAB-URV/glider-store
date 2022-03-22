@@ -25,22 +25,26 @@ public class OnWriteChannel implements ReadableByteChannel {
 		if (!open) {
 			throw new ClosedChannelException();
 		}
-		if (currentSlice == null
-				|| (currentSlice.getSlice() != null && !currentSlice.getSlice().hasRemaining())) {
+		if (currentSlice == null) {
 			takeFromQueue();
 		}
 		if (currentSlice.getSlice() == null) {
 			// end-of-stream
 			return -1;
 		}
-		// We suppose buffers on the queue should be fully read,
-		// i.e. from position 0 to capacity. And they are added
-		// to the queue with position set to 0 and limit to capacity.
 		ByteBuffer slice = currentSlice.getSlice();
 		int opLen = Math.min(dst.remaining(), slice.remaining());
+		int oldLimit = slice.limit();
 		slice.limit(slice.position() + opLen);
 		dst.put(slice);
-		slice.limit(slice.capacity());
+		slice.limit(oldLimit);
+
+		// when the current slice is fully processed, free it
+		if (!slice.hasRemaining()) {
+			slice.flip();
+			currentSlice.complete(slice.remaining());
+			currentSlice = null;
+		}
 		return opLen;
 	}
 

@@ -5,6 +5,7 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +37,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 	private long regions;
 	private long keys;
 	private ConcurrentHashMap<Integer, ActionManager> actionManagers; // one manager per region
+	private HashMap<Long, ByteBuffer> readBuffers;
 
 	private ScheduledExecutorService scheduler;
 	private List<String> jars;
@@ -70,7 +72,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				TcpStorageConstants.STORAGE_TCP_QUEUE_DEPTH,
 				(int) CrailConstants.BLOCK_SIZE * 2,
 				false,
-				TcpStorageConstants.STORAGE_TCP_CORES);
+				ActiveStorageConstants.STORAGE_ACTIVE_CORES);
 		this.serverEndpoint = serverGroup.createServerEndpoint();
 		this.address = StorageUtils.getDataNodeAddress(TcpStorageConstants.STORAGE_TCP_INTERFACE,
 				TcpStorageConstants.STORAGE_TCP_PORT);
@@ -79,6 +81,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 		this.regions = TcpStorageConstants.STORAGE_TCP_STORAGE_LIMIT / TcpStorageConstants.STORAGE_TCP_ALLOCATION_SIZE;
 		this.keys = 0;
 		this.actionManagers = new ConcurrentHashMap<>();
+		this.readBuffers = new HashMap<>();
 
 		scheduler = Executors.newScheduledThreadPool(1);
 		jars = new LinkedList<>();
@@ -227,8 +230,11 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				// 		+ ", length " + readRequest.length()
 				// 		+ ", offset " + readRequest.getOffset()
 				// 		+ ", channel " + readRequest.getChannel());
-
-				ByteBuffer data = ByteBuffer.allocateDirect(readRequest.length());
+				ByteBuffer data = readBuffers.computeIfAbsent(Thread.currentThread().getId(), (k) -> {
+					return ByteBuffer.allocateDirect(CrailConstants.BUFFER_SIZE);
+				});
+				
+				data.clear().limit(readRequest.length());
 				try {
 					int read = actionManagers.get(readRequest.getKey())
 							.read(readRequest.getAddress(), data, readRequest.getChannel());

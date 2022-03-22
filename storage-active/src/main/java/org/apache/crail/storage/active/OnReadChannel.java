@@ -51,7 +51,7 @@ public class OnReadChannel implements WritableByteChannel {
 
 			// when the current slice gets full, queue it for return
 			if (!slice.hasRemaining()) {
-				slice.clear();
+				slice.flip();
 				currentSlice.complete(slice.remaining());
 				currentSlice = null;
 			}

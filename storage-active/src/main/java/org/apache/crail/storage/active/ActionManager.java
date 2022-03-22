@@ -203,18 +203,27 @@ public class ActionManager {
 				actionExecutorService.submit(new OnWriteOperation(action, channel, actionLocks.get(actionId)));
 			}
 		}
-		int len = buffer.remaining();
+		OperationSlice op = new OperationSlice(buffer, false);
 		try {
-			// TODO: deal with an server-side-early-closed channel, and already closed channels
-			channel.put(new OperationSlice(buffer, true));
-			// FIXME: do not block indefinitely, fail and let the client retry.
-			//  Otherwise network threads can quickly stale.
+			// TODO: deal with a server-side-early-closed channel, and already closed channels
+			channel.put(op);
 			// LOG.info("active write queued, action " + actionId + ", channel " + channelId);
 		} catch (InterruptedException e) {
 			// put interrupted means the channel was closed before end-of-stream and this operation is discarded
 			e.printStackTrace();
 		}
-		return len;
+		// wait until the buffer is processed
+		try {
+			op.waitCompleted();
+			// Waiting on writes is not necessary but allows to reuse the same buffer for all
+			// operations from that network thread. This could stale netwok threads in deadlocks
+		} catch (InterruptedException e) {
+			// interruption means that the channel was closed early server-side after this slice
+			// was queued but never taken from queue
+			e.printStackTrace();
+		}
+		// return actual bytes written (should always be >= 0)
+		return op.getBytesProcessed();
 	}
 
 	/**

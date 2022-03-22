@@ -27,6 +27,9 @@ public class ActiveStorageConstants {
 	
 	public static final String STORAGE_ACTIVE_JAR_DIR_KEY = "crail.storage.active.jardir";
 	public static String STORAGE_ACTIVE_JAR_DIR = "/tmp";
+	
+	public static final String STORAGE_ACTIVE_CORES_KEY = "crail.storage.active.cores";
+	public static int STORAGE_ACTIVE_CORES = 1;
 
 	
     public static void init(CrailConfiguration conf, String[] args) throws Exception {
@@ -37,10 +40,14 @@ public class ActiveStorageConstants {
 		if (conf.get(STORAGE_ACTIVE_JAR_DIR_KEY) != null) {
 			STORAGE_ACTIVE_JAR_DIR = conf.get(STORAGE_ACTIVE_JAR_DIR_KEY);
 		}
+		if (conf.get(STORAGE_ACTIVE_CORES_KEY) != null) {
+			STORAGE_ACTIVE_CORES = Integer.parseInt(conf.get(STORAGE_ACTIVE_CORES_KEY));
+		}
 	}	
 	
 	public static void printConf(Logger logger) {
 		logger.info(STORAGE_ACTIVE_JAR_DIR_KEY + " " + STORAGE_ACTIVE_JAR_DIR);
+		logger.info(STORAGE_ACTIVE_CORES_KEY + " " + STORAGE_ACTIVE_CORES);
 	}	
 
 }
