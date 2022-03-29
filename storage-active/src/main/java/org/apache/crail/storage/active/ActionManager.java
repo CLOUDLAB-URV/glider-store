@@ -7,6 +7,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -287,6 +288,16 @@ public class ActionManager {
 		// 	delete all actions
 		// interrupt waiting threads (actions) and deal with early closes
 		actionExecutorService.shutdown();
+		try {
+			if (!actionExecutorService.awaitTermination(30, TimeUnit.SECONDS)) {
+				actionExecutorService.shutdownNow();
+				if (!actionExecutorService.awaitTermination(30, TimeUnit.SECONDS)) {
+					LOG.info("Action manager executor did not terminate.");
+				}
+			}
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 	}
 
 	/**

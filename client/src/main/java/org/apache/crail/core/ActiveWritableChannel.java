@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 public final class ActiveWritableChannel extends ActiveChannel implements WritableByteChannel {
 	private static final Logger LOG = CrailUtils.getLogger();
 	private boolean open;
+	private long totalWritten = 0;
 
 	ActiveWritableChannel(CoreObject object, ActiveEndpoint endpoint, BlockInfo block) throws IOException {
 		super(object, endpoint, block);
@@ -50,10 +51,15 @@ public final class ActiveWritableChannel extends ActiveChannel implements Writab
 		CoreObjectOperation future = dataOperation(src);
 		try {
 			CrailResult result = future.get();  // TODO: async version?
+			totalWritten += result.getLen();
 			return (int) result.getLen();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new IOException("ActiveChannel:write - Future not completed.", e);
 		}
+	}
+
+	public long getTotalWritten() {
+		return totalWritten;
 	}
 
 	@Override

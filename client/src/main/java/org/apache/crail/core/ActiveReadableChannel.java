@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 public final class ActiveReadableChannel extends ActiveChannel implements ReadableByteChannel {
 	private static final Logger LOG = CrailUtils.getLogger();
 	private boolean open;
+	private long totalRead = 0;
 
 	ActiveReadableChannel(CoreObject object, ActiveEndpoint endpoint, BlockInfo block) throws IOException {
 		super(object, endpoint, block);
@@ -51,10 +52,15 @@ public final class ActiveReadableChannel extends ActiveChannel implements Readab
 			CrailResult result = future.get();
 			// If multi-operation got end of stream, the aggregation could be < -1
 			if (result.getLen() < 0) return -1;
+			totalRead += result.getLen();
 			return (int) result.getLen();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new IOException("ActiveChannel:read - Future not completed.", e);
 		}
+	}
+
+	public long getTotalRead() {
+		return totalRead;
 	}
 
 	@Override
