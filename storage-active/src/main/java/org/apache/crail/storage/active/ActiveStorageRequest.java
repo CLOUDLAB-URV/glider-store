@@ -302,12 +302,13 @@ public class ActiveStorageRequest implements NaRPCMessage {
 	}
 
 	public static class CreateRequest {
-		public static final int CSIZE = Integer.BYTES + Long.BYTES + Integer.BYTES + Integer.BYTES;
+		public static final int CSIZE = Integer.BYTES + Long.BYTES + Integer.BYTES + Integer.BYTES + Character.BYTES;
 
 		private int key;
 		private long address;
 		private String name;
 		private String path;
+		private boolean interleaving;
 
 		public CreateRequest() {
 		}
@@ -317,6 +318,15 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			this.name = className;
 			this.key = key;
 			this.address = address;
+			this.interleaving = false;
+		}
+
+		public CreateRequest(String filename, String className, int key, long address, boolean interleaving) {
+			this.path = filename;
+			this.name = className;
+			this.key = key;
+			this.address = address;
+			this.interleaving = interleaving;
 		}
 
 		public long getAddress() {
@@ -335,6 +345,10 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			return path;
 		}
 
+		public boolean getInterleaving() {
+			return interleaving;
+		}
+
 		public int size() {
 			return CSIZE + name.getBytes(StandardCharsets.UTF_8).length
 					+ path.getBytes(StandardCharsets.UTF_8).length;
@@ -343,6 +357,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		public void update(ByteBuffer buffer) throws IOException {
 			key = buffer.getInt();
 			address = buffer.getLong();
+			interleaving = buffer.getChar() == 't';
 			byte[] nameBytes = new byte[buffer.getInt()];
 			buffer.get(nameBytes);
 			name = new String(nameBytes, StandardCharsets.UTF_8);
@@ -354,6 +369,11 @@ public class ActiveStorageRequest implements NaRPCMessage {
 		public int write(ByteBuffer buffer) throws IOException {
 			buffer.putInt(key);
 			buffer.putLong(address);
+			if (interleaving) {
+				buffer.putChar('t');
+			} else {
+				buffer.putChar('f');				
+			}
 			byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 			buffer.putInt(nameBytes.length);
 			buffer.put(nameBytes);

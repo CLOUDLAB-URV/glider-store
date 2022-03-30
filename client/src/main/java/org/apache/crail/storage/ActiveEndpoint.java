@@ -8,6 +8,8 @@ import org.apache.crail.metadata.BlockInfo;
 public interface ActiveEndpoint extends StorageEndpoint {
 	StorageFuture create(String filename, String className, BlockInfo block) throws IOException;
 
+	StorageFuture create(String filename, String className, BlockInfo block, boolean interleaving) throws IOException;
+
 	StorageFuture delete(BlockInfo block) throws IOException;
 
 	StorageFuture writeStream(ByteBuffer buffer, BlockInfo block, long offset, long channelId) throws IOException;

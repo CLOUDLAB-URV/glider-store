@@ -62,6 +62,20 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 	}
 
 	@Override
+	public StorageFuture create(String filename, String className, BlockInfo block, boolean interleaving) throws IOException {
+		// LOG.info("Active create, class name " + className + ", block " + block.getLkey() + "/" + block.getAddr());
+		ActiveStorageRequest.CreateRequest createReq =
+				new ActiveStorageRequest.CreateRequest(filename, className, block.getLkey(), block.getAddr(), interleaving);
+		ActiveStorageResponse.CreateResponse createResp = new ActiveStorageResponse.CreateResponse();
+
+		ActiveStorageRequest req = new ActiveStorageRequest(createReq);
+		ActiveStorageResponse resp = new ActiveStorageResponse(createResp);
+
+		NaRPCFuture<ActiveStorageRequest, ActiveStorageResponse> narpcFuture = endpoint.issueRequest(req, resp);
+		return new ActiveStorageFuture(narpcFuture, 0);
+	}
+
+	@Override
 	public StorageFuture delete(BlockInfo block) throws IOException {
 		// LOG.info("Active delete, block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.DeleteRequest deleteRequest =

@@ -196,7 +196,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 
 				try {
 					actionManagers.get(createRequest.getKey())
-							.create(createRequest.getAddress(), createRequest.getName(), createRequest.getPath());
+							.create(createRequest.getAddress(), createRequest.getName(),
+							        createRequest.getPath(), createRequest.getInterleaving());
 					ActiveStorageResponse.CreateResponse createResponse = new ActiveStorageResponse.CreateResponse();
 					return new ActiveStorageResponse(createResponse);
 				} catch (NoActionException e) {
@@ -266,7 +267,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 					ActiveStorageResponse.OpenResponse openResponse = new ActiveStorageResponse.OpenResponse(channel);
 					return new ActiveStorageResponse(openResponse);
 				} catch (NoActionException e) {
-					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_WRITE,
+					return new ActiveStorageResponse(ActiveStorageProtocol.REQ_OPEN,
 							ActiveStorageProtocol.RET_NOT_CREATED);
 				}
 			}

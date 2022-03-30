@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.locks.Lock;
 
 /**
  * Server-side channel for reading from an action. Actions write to this channel.
@@ -14,10 +15,16 @@ public class OnReadChannel implements WritableByteChannel {
 	private final BlockingQueue<OperationSlice> data;
 	private OperationSlice currentSlice;
 	private boolean open;
+	private Lock lock;
 
 	public OnReadChannel(BlockingQueue<OperationSlice> dataQueue) {
 		this.data = dataQueue;
 		this.open = true;
+	}
+
+	public OnReadChannel(BlockingQueue<OperationSlice> dataQueue, Lock interleaving) {
+		this(dataQueue);
+		lock = interleaving;
 	}
 
 	@Override
@@ -61,7 +68,13 @@ public class OnReadChannel implements WritableByteChannel {
 
 	private void takeFromQueue() throws IOException {
 		try {
+			if (lock != null) {
+				lock.unlock();
+			}
 			currentSlice = data.take();  // blocking until available
+			if (lock != null) {
+				lock.lock();
+			}
 		} catch (InterruptedException e) {
 			throw new IOException("Interrupted waiting for data.");
 		}

@@ -23,6 +23,17 @@ public interface CrailObjectProxy {
 	void create(Class<? extends CrailAction> actionClass) throws Exception;
 
 	/**
+	 * Instantiates an action on this object. Each object can only
+	 * have one action. If the second parameter is true, the action will
+	 * allow interleaving operations on it.
+	 *
+	 * @param actionClass The class defining the action.
+	 * @param interleaving If the action should allow interleaving operations.
+	 * @throws Exception if there is an error processing the request.
+	 */
+	void create(Class<? extends CrailAction> actionClass, boolean interleaving) throws Exception;
+
+	/**
 	 * Removes the action existing in this object. It does not remove
 	 * the object: use the CrailStore client to remove Crail nodes.
 	 *

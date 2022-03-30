@@ -23,8 +23,8 @@ import org.slf4j.Logger;
  */
 public class ActionManager {
 	private static final Logger LOG = CrailUtils.getLogger();
-	private static final int CH_SIZE = 5;    // FIXME: move to config
-//	private static final int ACTION_THREADS = 2;
+	private static final int CH_SIZE = 5;  // FIXME: move to config
+	// private static final int ACTION_THREADS = 2;
 
 	private final CrailStore fs;
 	private final ConcurrentHashMap<Long, CrailAction> actions;
@@ -40,7 +40,7 @@ public class ActionManager {
 		actions = new ConcurrentHashMap<>();
 		actionLocks = new ConcurrentHashMap<>();
 		channels = new ConcurrentHashMap<>();
-//		actionExecutorService = Executors.newFixedThreadPool(ACTION_THREADS);
+		// actionExecutorService = Executors.newFixedThreadPool(ACTION_THREADS);
 		actionExecutorService = Executors.newCachedThreadPool();
 		idGen = new AtomicLong(0);
 	}
@@ -58,17 +58,16 @@ public class ActionManager {
 	 * @param crailPath       The path to this action in the global Crail FS.
 	 * @throws NoActionException If the action could not be created.
 	 */
-	public void create(long actionId, String actionClassName, String crailPath)
+	public void create(long actionId, String actionClassName, String crailPath, boolean interleaving)
 			throws NoActionException {
 		CrailAction action = actions.computeIfAbsent(actionId, key -> {
 			try {
-				Class<? extends CrailAction> actionClass =
-						Class.forName(actionClassName).asSubclass(CrailAction.class);
+				Class<? extends CrailAction> actionClass = Class.forName(actionClassName).asSubclass(CrailAction.class);
 				CrailObject node = fs.lookup(crailPath).get().asObject();
 				CrailAction a = actionClass.newInstance();
-				Method method = CrailAction.class.getDeclaredMethod("init", CrailObject.class);
+				Method method = CrailAction.class.getDeclaredMethod("init", CrailObject.class, boolean.class);
 				method.setAccessible(true);
-				method.invoke(a, node);
+				method.invoke(a, node, interleaving);
 				actionLocks.put(actionId, new ReentrantLock());
 				return a;
 			} catch (ClassNotFoundException | ClassCastException
@@ -79,6 +78,7 @@ public class ActionManager {
 			} catch (Exception e) {
 				// cloud not complete the lookup
 				LOG.info("Object creating is not in namenode.");
+				e.printStackTrace();
 				return null;
 			}
 		});
@@ -130,7 +130,7 @@ public class ActionManager {
 	 * @param buffer    Buffer to populate with the read operation.
 	 * @param channelId Unique identifier for the channel.
 	 * @return The number of bytes read from the channel, possibly 0.
-	 * -1 if the channel has reached end-of-stream.
+	 *         -1 if the channel has reached end-of-stream.
 	 * @throws NoActionException if the action is not in this manager.
 	 */
 	public int read(long actionId, ByteBuffer buffer, long channelId) throws NoActionException {
@@ -295,9 +295,9 @@ public class ActionManager {
 					LOG.info("Action manager executor did not terminate.");
 				}
 			}
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -333,7 +333,11 @@ public class ActionManager {
 		public void run() {
 			lock.lock();
 			try {
-				action.onWrite(new OnWriteChannel(channel));
+				if (action.isInterleaving()) {
+					action.onWrite(new OnWriteChannel(channel, lock));
+				} else {
+					action.onWrite(new OnWriteChannel(channel));
+				}
 			} finally {
 				lock.unlock();
 			}
@@ -358,7 +362,11 @@ public class ActionManager {
 		public void run() {
 			lock.lock();
 			try {
-				action.onRead(new OnReadChannel(channel));
+				if (action.isInterleaving()) {
+					action.onRead(new OnReadChannel(channel, lock));
+				} else {
+					action.onRead(new OnReadChannel(channel));
+				}
 			} finally {
 				lock.unlock();
 			}
