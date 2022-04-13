@@ -95,4 +95,14 @@ public class CoreObjectProxy implements CrailObjectProxy {
 	public ActiveReadableChannel getReadableChannel() throws IOException {
 		return new ActiveReadableChannel(node, endpoint, block);
 	}
+
+	@Override
+	public ActiveAsyncChannel getWritableAsyncChannel() throws IOException {
+		return new ActiveAsyncChannel(node, endpoint, block, "w");
+	}
+
+	@Override
+	public ActiveAsyncChannel getReadableAsyncChannel() throws IOException {
+		return new ActiveAsyncChannel(node, endpoint, block, "r");
+	}
 }

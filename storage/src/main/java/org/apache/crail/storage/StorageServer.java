@@ -48,8 +48,6 @@ import org.apache.crail.rpc.RpcConnection;
 import org.apache.crail.rpc.RpcDispatcher;
 import org.apache.crail.utils.CrailUtils;
 import org.slf4j.Logger;
-import sun.misc.Signal;
-import sun.misc.SignalHandler;
 
 public interface StorageServer extends Configurable, Runnable {
 	public static void main(String[] args) throws Exception {
@@ -196,9 +194,7 @@ public interface StorageServer extends Configurable, Runnable {
 			}
 		};
 
-		SignalHandler sh = s -> latch.countDown();
-		Signal.handle(new Signal("INT"), sh);
-		Signal.handle(new Signal("TERM"), sh);
+		Runtime.getRuntime().addShutdownHook(new Thread(() -> latch.countDown()));
 
 		ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 		ScheduledFuture<?> loopFuture = scheduler.scheduleAtFixedRate(

@@ -3,8 +3,8 @@ package org.apache.crail;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.concurrent.Future;
 
+import org.apache.crail.core.ActiveAsyncChannel;
 import org.apache.crail.core.ActiveReadableChannel;
 import org.apache.crail.core.ActiveWritableChannel;
 
@@ -76,4 +76,20 @@ public interface CrailObjectProxy {
 	 * @throws IOException if the channel could not be created.
 	 */
 	ActiveReadableChannel getReadableChannel() throws IOException;
+
+	/**
+	 * Obtain an AsyncChannel prepared for writing.
+	 *
+	 * @return An AsyncChannel
+	 * @throws IOException if the channel could not be created.
+	 */
+	ActiveAsyncChannel getWritableAsyncChannel() throws IOException;
+
+	/**
+	 * Obtain an AsyncChannel prepared for reading.
+	 *
+	 * @return An AsyncChannel
+	 * @throws IOException if the channel could not be created.
+	 */
+	ActiveAsyncChannel getReadableAsyncChannel() throws IOException;
 }

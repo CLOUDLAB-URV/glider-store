@@ -50,7 +50,7 @@ public final class ActiveWritableChannel extends ActiveChannel implements Writab
 		}
 		CoreObjectOperation future = dataOperation(src);
 		try {
-			CrailResult result = future.get();  // TODO: async version?
+			CrailResult result = future.get();
 			totalWritten += result.getLen();
 			return (int) result.getLen();
 		} catch (InterruptedException | ExecutionException e) {
