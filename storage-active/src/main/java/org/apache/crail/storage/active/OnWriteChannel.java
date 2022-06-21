@@ -55,7 +55,7 @@ public class OnWriteChannel implements ReadableByteChannel {
 		return opLen;
 	}
 
-	private void takeFromQueue() throws IOException {
+	private void takeFromQueue() {
 		try {
 			if (lock != null) {
 				lock.unlock();
@@ -65,7 +65,8 @@ public class OnWriteChannel implements ReadableByteChannel {
 				lock.lock();
 			}
 		} catch (InterruptedException e) {
-			throw new IOException("Interrupted waiting for data.");
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 	}
 

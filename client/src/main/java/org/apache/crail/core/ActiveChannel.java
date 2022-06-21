@@ -37,7 +37,11 @@ public abstract class ActiveChannel {
 		this.position = 0;
 		try {
 			this.channelId = endpoint.openStream(block).get().getChannel();
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+			throw new IOException("Could not get a channel ID.", e);
+		} catch (ExecutionException e) {
 			throw new IOException("Could not get a channel ID.", e);
 		}
 	}

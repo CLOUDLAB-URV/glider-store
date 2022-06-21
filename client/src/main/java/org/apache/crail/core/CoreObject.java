@@ -13,6 +13,7 @@ public class CoreObject extends CoreNode implements CrailObject {
 		super(fs, fileInfo, path);
 	}
 
+	@Override
 	public CrailObject asObject() throws Exception {
 		if (!getType().isObject()) {
 			throw new Exception("object type mismatch, type " + getType());

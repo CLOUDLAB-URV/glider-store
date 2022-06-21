@@ -28,7 +28,7 @@ public final class ActiveWritableChannel extends ActiveChannel implements Writab
 		super(object, endpoint, block);
 		this.open = true;
 		if (CrailConstants.DEBUG) {
-			LOG.info("ActiveWritableChannel, open, path " + object.getPath());
+			LOG.info("ActiveWritableChannel, open, path {}", object.getPath());
 		}
 	}
 
@@ -53,7 +53,11 @@ public final class ActiveWritableChannel extends ActiveChannel implements Writab
 			CrailResult result = future.get();
 			totalWritten += result.getLen();
 			return (int) result.getLen();
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+			throw new IOException("ActiveChannel:write - Future not completed.", e);
+		} catch (ExecutionException e) {
 			throw new IOException("ActiveChannel:write - Future not completed.", e);
 		}
 	}
@@ -75,7 +79,11 @@ public final class ActiveWritableChannel extends ActiveChannel implements Writab
 		// send finish token to server
 		try {
 			endpoint.closeWrite(block, position, channelId).get();
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+			throw new IOException("ActiveChannel:close write - Future not completed.", e);
+		} catch (ExecutionException e) {
 			throw new IOException("ActiveChannel:close write - Future not completed.", e);
 		}
 		open = false;

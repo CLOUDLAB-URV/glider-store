@@ -39,12 +39,12 @@ public class OnReadChannel implements WritableByteChannel {
 			}
 			ByteBuffer slice = currentSlice.getSlice();
 			if (slice == null) {
-				// a null slice here means that the client closed the stream early;
+				// a null slice here means that the client closed the stream early
 				// close this channel to discard further writes
 				open = false;
 				return opLen;
 			}
-			// Copy data from src to the current slice until it is full;
+			// Copy data from src to the current slice until it is full
 			if (src.remaining() <= slice.remaining()) {
 				opLen += src.remaining();
 				slice.put(src);
@@ -66,7 +66,7 @@ public class OnReadChannel implements WritableByteChannel {
 		return opLen;
 	}
 
-	private void takeFromQueue() throws IOException {
+	private void takeFromQueue() {
 		try {
 			if (lock != null) {
 				lock.unlock();
@@ -76,7 +76,8 @@ public class OnReadChannel implements WritableByteChannel {
 				lock.lock();
 			}
 		} catch (InterruptedException e) {
-			throw new IOException("Interrupted waiting for data.");
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 	}
 
@@ -101,7 +102,8 @@ public class OnReadChannel implements WritableByteChannel {
 			data.put(new OperationSlice());
 			assert (data.size() == 1) : "closed stream with pending slices";
 		} catch (InterruptedException e) {
-			throw new IOException("could not close stream.", e);
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 	}
 }

@@ -28,7 +28,7 @@ public final class ActiveReadableChannel extends ActiveChannel implements Readab
 		super(object, endpoint, block);
 		this.open = true;
 		if (CrailConstants.DEBUG) {
-			LOG.info("ActiveReadableChannel, open, path " + object.getPath());
+			LOG.info("ActiveReadableChannel, open, path {}", object.getPath());
 		}
 	}
 
@@ -54,7 +54,11 @@ public final class ActiveReadableChannel extends ActiveChannel implements Readab
 			if (result.getLen() < 0) return -1;
 			totalRead += result.getLen();
 			return (int) result.getLen();
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+			throw new IOException("ActiveChannel:read - Future not completed.", e);
+		} catch (ExecutionException e) {
 			throw new IOException("ActiveChannel:read - Future not completed.", e);
 		}
 	}
@@ -73,12 +77,16 @@ public final class ActiveReadableChannel extends ActiveChannel implements Readab
 		if (!open) {
 			return;
 		}
-		// This allows the client to clos the channel before the server responds with end-of-stream.
+		// This allows the client to close the channel before the server responds with end-of-stream.
 		// For that, we send finish token to server, so that it discards and stops the operation.
 		// If closed after receiving end-of-stream, the server will ignore the token.
 		try {
 			endpoint.closeRead(block, position, channelId).get();
-		} catch (InterruptedException | ExecutionException e) {
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			Thread.currentThread().interrupt();
+			throw new IOException("ActiveChannel:close read - Future not completed.", e);
+		} catch (ExecutionException e) {
 			throw new IOException("ActiveChannel:close read - Future not completed.", e);
 		}
 		open = false;

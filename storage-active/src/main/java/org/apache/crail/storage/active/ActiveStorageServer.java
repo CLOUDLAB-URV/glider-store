@@ -1,10 +1,13 @@
 package org.apache.crail.storage.active;
 
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -43,22 +46,27 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 	private List<String> jars;
 	private CrailStore fs;
 
-	public static synchronized void loadLibrary(java.io.File jar) {
+	private static synchronized void loadLibrary(java.io.File jar) {
 		try {
-			LOG.info("Loading JAR: " + jar.getName());
+			LOG.info("Loading JAR: {}", jar.getName());
 			ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-			try {
+			if (Arrays.stream(classLoader.getClass().getDeclaredMethods())
+					.anyMatch(m -> m.getName().equals("addURL"))) {
+				// This works only if the class loader is a URLClassLoader
 				Method method = classLoader.getClass().getDeclaredMethod("addURL", URL.class);
 				method.setAccessible(true);
 				method.invoke(classLoader, jar.toURI().toURL());
-			} catch (NoSuchMethodException e) {
+			} else {
+				// Recently, the Class loader is AppClassLoader (sun)
 				Method method = classLoader.getClass()
 						.getDeclaredMethod("appendToClassPathForInstrumentation", String.class);
 				method.setAccessible(true);
 				method.invoke(classLoader, jar.getPath());
 			}
-		} catch (final java.lang.NoSuchMethodException | java.lang.IllegalAccessException
-				| java.net.MalformedURLException | java.lang.reflect.InvocationTargetException e) {
+		} catch (final NoSuchMethodException
+									 | IllegalAccessException
+									 | MalformedURLException
+									 | InvocationTargetException e) {
 			e.printStackTrace();
 		}
 	}
@@ -136,13 +144,13 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 
 	@Override
 	public void run() {
-		LOG.info("running Active-TCP storage server, address " + address);
+		LOG.info("running Active-TCP storage server, address {}", address);
 		this.alive = true;
 
 		Runnable jarLoader = () -> {
 			try {
 				File folder = new File(ActiveStorageConstants.STORAGE_ACTIVE_JAR_DIR);
-				LOG.info("Monitoring jars in " + ActiveStorageConstants.STORAGE_ACTIVE_JAR_DIR);
+				LOG.info("Monitoring jars in {}", ActiveStorageConstants.STORAGE_ACTIVE_JAR_DIR);
 				File[] listOfFiles = folder.listFiles();
 				if (listOfFiles == null) {
 					LOG.error("User JAR path is not a directory!");
@@ -173,7 +181,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				LOG.info("new connection " + endpoint.address());
 			}
 		} catch (Exception e) {
-			// if StorageServer is still marked as running, output stacktrace;
+			// if StorageServer is still marked as running, output stacktrace
 			// otherwise this is expected behaviour
 			if (this.alive) {
 				e.printStackTrace();
@@ -197,7 +205,7 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				try {
 					actionManagers.get(createRequest.getKey())
 							.create(createRequest.getAddress(), createRequest.getName(),
-							        createRequest.getPath(), createRequest.getInterleaving());
+									createRequest.getPath(), createRequest.getInterleaving());
 					ActiveStorageResponse.CreateResponse createResponse = new ActiveStorageResponse.CreateResponse();
 					return new ActiveStorageResponse(createResponse);
 				} catch (NoActionException e) {
@@ -213,8 +221,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				// 		+ ", channel " + writeRequest.getChannel());
 
 				try {
-					// TODO: read and write requests include offsets in case it is necessary ordering them.
-					//  It is not needed now because clients perform channel operations synchronously.
+					// read and write requests include offsets in case it is necessary ordering them.
+					// It is not needed now because clients perform channel operations synchronously.
 					int written = actionManagers.get(writeRequest.getKey())
 							.write(writeRequest.getAddress(), writeRequest.getBuffer(), writeRequest.getChannel());
 					ActiveStorageResponse.WriteResponse writeResponse =
@@ -231,10 +239,9 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 				// 		+ ", length " + readRequest.length()
 				// 		+ ", offset " + readRequest.getOffset()
 				// 		+ ", channel " + readRequest.getChannel());
-				ByteBuffer data = readBuffers.computeIfAbsent(Thread.currentThread().getId(), (k) -> {
-					return ByteBuffer.allocateDirect(CrailConstants.BUFFER_SIZE);
-				});
-				
+				ByteBuffer data = readBuffers.computeIfAbsent(Thread.currentThread().getId(),
+						k -> ByteBuffer.allocateDirect(CrailConstants.BUFFER_SIZE));
+
 				data.clear().limit(readRequest.length());
 				try {
 					int read = actionManagers.get(readRequest.getKey())
@@ -286,7 +293,8 @@ public class ActiveStorageServer implements StorageServer, NaRPCService<ActiveSt
 					}
 				} catch (NoActionException ignored) {
 				} catch (InterruptedException e) {
-					LOG.info("Could not close channel: " + closeRequest.getChannel());
+					LOG.info("Could not close channel: {}", closeRequest.getChannel());
+					Thread.currentThread().interrupt();
 				}
 				ActiveStorageResponse.CloseResponse closeResponse = new ActiveStorageResponse.CloseResponse();
 				return new ActiveStorageResponse(closeResponse);

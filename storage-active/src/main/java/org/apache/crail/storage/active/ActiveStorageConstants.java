@@ -19,35 +19,40 @@
 package org.apache.crail.storage.active;
 
 import org.apache.crail.conf.CrailConfiguration;
-import org.apache.crail.utils.CrailUtils;
 import org.slf4j.Logger;
 
 public class ActiveStorageConstants {
-	private static final Logger LOG = CrailUtils.getLogger();
-	
 	public static final String STORAGE_ACTIVE_JAR_DIR_KEY = "crail.storage.active.jardir";
 	public static String STORAGE_ACTIVE_JAR_DIR = "/tmp";
-	
+
 	public static final String STORAGE_ACTIVE_CORES_KEY = "crail.storage.active.cores";
 	public static int STORAGE_ACTIVE_CORES = 1;
 
-	
-    public static void init(CrailConfiguration conf, String[] args) throws Exception {
-        ActiveStorageConstants.updateConstants(conf);
-    }
-	
-	public static void updateConstants(CrailConfiguration conf){
+	public static final String STORAGE_ACTIVE_CHANNEL_SIZE_KEY = "crail.storage.active.chsize";
+	public static int STORAGE_ACTIVE_CHANNEL_SIZE = 5;
+
+
+	public static void init(CrailConfiguration conf, String[] args) {
+		ActiveStorageConstants.updateConstants(conf);
+	}
+
+	public static void updateConstants(CrailConfiguration conf) {
 		if (conf.get(STORAGE_ACTIVE_JAR_DIR_KEY) != null) {
 			STORAGE_ACTIVE_JAR_DIR = conf.get(STORAGE_ACTIVE_JAR_DIR_KEY);
 		}
 		if (conf.get(STORAGE_ACTIVE_CORES_KEY) != null) {
 			STORAGE_ACTIVE_CORES = Integer.parseInt(conf.get(STORAGE_ACTIVE_CORES_KEY));
 		}
-	}	
-	
+		if (conf.get(STORAGE_ACTIVE_CHANNEL_SIZE_KEY) != null) {
+			STORAGE_ACTIVE_CHANNEL_SIZE = Integer.parseInt(conf.get(STORAGE_ACTIVE_CHANNEL_SIZE_KEY));
+		}
+	}
+
 	public static void printConf(Logger logger) {
-		logger.info(STORAGE_ACTIVE_JAR_DIR_KEY + " " + STORAGE_ACTIVE_JAR_DIR);
-		logger.info(STORAGE_ACTIVE_CORES_KEY + " " + STORAGE_ACTIVE_CORES);
-	}	
+		String format = "{} {}";
+		logger.info(format, STORAGE_ACTIVE_JAR_DIR_KEY, STORAGE_ACTIVE_JAR_DIR);
+		logger.info(format, STORAGE_ACTIVE_CORES_KEY, STORAGE_ACTIVE_CORES);
+		logger.info(format, STORAGE_ACTIVE_CHANNEL_SIZE_KEY, STORAGE_ACTIVE_CHANNEL_SIZE);
+	}
 
 }

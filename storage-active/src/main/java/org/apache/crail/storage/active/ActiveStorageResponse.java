@@ -108,11 +108,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 				readResponse.update(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_OPEN) {
 				openResponse.update(buffer);
-			} else if (type == ActiveStorageProtocol.REQ_CREATE
-					| type == ActiveStorageProtocol.REQ_DEL
-					| type == ActiveStorageProtocol.REQ_CLOSE) {
-				emptyResponse.update(buffer);
-			}
+			} // For REQ_CREATE, REQ_DEL, REQ_CLOSE do nothing
 		}
 	}
 
@@ -128,11 +124,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 				written += readResponse.write(buffer);
 			} else if (type == ActiveStorageProtocol.REQ_OPEN) {
 				written += openResponse.write(buffer);
-			} else if (type == ActiveStorageProtocol.REQ_CREATE
-					| type == ActiveStorageProtocol.REQ_DEL
-					| type == ActiveStorageProtocol.REQ_CLOSE) {
-				written += emptyResponse.write(buffer);
-			}
+			} // For REQ_CREATE, REQ_DEL, REQ_CLOSE do nothing
 		}
 		return written;
 	}
@@ -141,7 +133,6 @@ public class ActiveStorageResponse implements NaRPCMessage {
 		private int bytesWritten;
 
 		public WriteResponse() {
-
 		}
 
 		public WriteResponse(int bytesWritten) {
@@ -152,11 +143,11 @@ public class ActiveStorageResponse implements NaRPCMessage {
 			return bytesWritten;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			bytesWritten = buffer.getInt();
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(bytesWritten);
 			return Integer.BYTES;
 		}
@@ -179,7 +170,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 			return bytesRead;
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(bytesRead);
 			int written = data.remaining();
 			buffer.putInt(data.remaining());
@@ -187,7 +178,7 @@ public class ActiveStorageResponse implements NaRPCMessage {
 			return Integer.BYTES + Integer.BYTES + written;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			this.bytesRead = buffer.getInt();
 			int remaining = buffer.getInt();
 			data.clear().limit(remaining);
@@ -211,36 +202,26 @@ public class ActiveStorageResponse implements NaRPCMessage {
 			return channel;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			channel = buffer.getLong();
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putLong(channel);
 			return Long.BYTES;
 		}
 	}
 
-	public static abstract class EmptyResponse {
-
-		public EmptyResponse() {
-		}
-
-		public void update(ByteBuffer buffer) throws IOException {
-		}
-
-		public int write(ByteBuffer buffer) throws IOException {
-			return 0;
-		}
+	public interface EmptyResponse {
 	}
 
-	public static class CreateResponse extends EmptyResponse {
+	public static class CreateResponse implements EmptyResponse {
 	}
 
-	public static class DeleteResponse extends EmptyResponse {
+	public static class DeleteResponse implements EmptyResponse {
 	}
 
-	public static class CloseResponse extends EmptyResponse {
+	public static class CloseResponse implements EmptyResponse {
 	}
 
 }

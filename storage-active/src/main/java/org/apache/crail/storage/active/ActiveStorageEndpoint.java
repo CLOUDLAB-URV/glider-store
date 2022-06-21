@@ -80,10 +80,10 @@ public class ActiveStorageEndpoint implements ActiveEndpoint {
 		// LOG.info("Active delete, block " + block.getLkey() + "/" + block.getAddr());
 		ActiveStorageRequest.DeleteRequest deleteRequest =
 				new ActiveStorageRequest.DeleteRequest(block.getLkey(), block.getAddr());
-		ActiveStorageResponse.DeleteResponse createResp = new ActiveStorageResponse.DeleteResponse();
+		ActiveStorageResponse.DeleteResponse deleteResponse = new ActiveStorageResponse.DeleteResponse();
 
 		ActiveStorageRequest req = new ActiveStorageRequest(deleteRequest);
-		ActiveStorageResponse resp = new ActiveStorageResponse(createResp);
+		ActiveStorageResponse resp = new ActiveStorageResponse(deleteResponse);
 
 		NaRPCFuture<ActiveStorageRequest, ActiveStorageResponse> narpcFuture = endpoint.issueRequest(req, resp);
 		return new ActiveStorageFuture(narpcFuture, 0);

@@ -194,7 +194,7 @@ public interface StorageServer extends Configurable, Runnable {
 			}
 		};
 
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> latch.countDown()));
+		Runtime.getRuntime().addShutdownHook(new Thread(latch::countDown));
 
 		ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 		ScheduledFuture<?> loopFuture = scheduler.scheduleAtFixedRate(

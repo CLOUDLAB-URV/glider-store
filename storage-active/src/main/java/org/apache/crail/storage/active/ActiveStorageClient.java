@@ -37,6 +37,7 @@ public class ActiveStorageClient implements StorageClient {
 
 	@Override
 	public void close() throws Exception {
+		// nothing to close
 	}
 
 	@Override

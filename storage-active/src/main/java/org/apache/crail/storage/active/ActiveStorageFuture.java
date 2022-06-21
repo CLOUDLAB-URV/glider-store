@@ -66,14 +66,14 @@ public class ActiveStorageFuture implements StorageFuture, StorageResult {
 	private void checkResponse() {
 		if (response.getType() == ActiveStorageProtocol.REQ_WRITE) {
 			len = response.getWriteResponse().getBytesWritten();
-		} else if (response.getType() == ActiveStorageProtocol.REQ_READ){
+		} else if (response.getType() == ActiveStorageProtocol.REQ_READ) {
 			len = response.getReadResponse().getBytesRead();
-		} else if (response.getType() == ActiveStorageProtocol.REQ_OPEN){
+		} else if (response.getType() == ActiveStorageProtocol.REQ_OPEN) {
 			channel = response.getOpenResponse().getChannel();
 		}
 		if (response.getError() != ActiveStorageProtocol.RET_OK) {
-			LOG.info("Active storage request returned error. Type: " +
-					response.getType() + " Error: " + response.getError());
+			LOG.info("Active storage request returned error. Type: {} Error: {}",
+					response.getType(), response.getError());
 		}
 	}
 
@@ -95,6 +95,7 @@ public class ActiveStorageFuture implements StorageFuture, StorageResult {
 		return len;
 	}
 
+	@Override
 	public long getChannel() {
 		return channel;
 	}

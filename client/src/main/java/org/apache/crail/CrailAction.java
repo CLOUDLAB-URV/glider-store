@@ -14,7 +14,7 @@ import java.nio.channels.WritableByteChannel;
 public abstract class CrailAction {
 	protected CrailStore fs;
 	protected CrailObject self;
-	protected boolean interleaving;
+	private boolean interleaving;
 
 	private void init(CrailObject node, boolean interleaving) {
 		this.self = node;
@@ -23,7 +23,7 @@ public abstract class CrailAction {
 		onCreate();
 	}
 
-	public boolean isInterleaving() {
+	public final boolean isInterleaving() {
 		return interleaving;
 	}
 

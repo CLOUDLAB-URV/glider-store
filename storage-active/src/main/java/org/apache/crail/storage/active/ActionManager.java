@@ -1,5 +1,6 @@
 package org.apache.crail.storage.active;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -23,8 +24,6 @@ import org.slf4j.Logger;
  */
 public class ActionManager {
 	private static final Logger LOG = CrailUtils.getLogger();
-	private static final int CH_SIZE = 5;  // FIXME: move to config
-	// private static final int ACTION_THREADS = 2;
 
 	private final CrailStore fs;
 	private final ConcurrentHashMap<Long, CrailAction> actions;
@@ -32,15 +31,12 @@ public class ActionManager {
 	private final ConcurrentHashMap<Long, BlockingQueue<OperationSlice>> channels;
 	private final ExecutorService actionExecutorService;
 	private final AtomicLong idGen;
-	// TODO: use a slice ring buffer to reuse buffers for write operations
-	//  instead of allocating each one.
 
 	public ActionManager(CrailStore fs) {
 		this.fs = fs;
 		actions = new ConcurrentHashMap<>();
 		actionLocks = new ConcurrentHashMap<>();
 		channels = new ConcurrentHashMap<>();
-		// actionExecutorService = Executors.newFixedThreadPool(ACTION_THREADS);
 		actionExecutorService = Executors.newCachedThreadPool();
 		idGen = new AtomicLong(0);
 	}
@@ -71,9 +67,15 @@ public class ActionManager {
 				actionLocks.put(actionId, new ReentrantLock());
 				return a;
 			} catch (ClassNotFoundException | ClassCastException
-					| InstantiationException | IllegalAccessException e) {
+							 | InstantiationException | IllegalAccessException e) {
 				// Error in dynamic class load or instantiation
-				LOG.info("Class not found: '" + actionClassName + "' -> " + e);
+				LOG.info(String.format("Class not found: '%s' -> %s", actionClassName, e));
+				return null;
+			} catch (InterruptedException e) {
+				// interrupted on lookup
+				LOG.info("Interrupted call to crail lookup.");
+				e.printStackTrace();
+				Thread.currentThread().interrupt();
 				return null;
 			} catch (Exception e) {
 				// cloud not complete the lookup
@@ -130,23 +132,23 @@ public class ActionManager {
 	 * @param buffer    Buffer to populate with the read operation.
 	 * @param channelId Unique identifier for the channel.
 	 * @return The number of bytes read from the channel, possibly 0.
-	 *         -1 if the channel has reached end-of-stream.
+	 * -1 if the channel has reached end-of-stream.
 	 * @throws NoActionException if the action is not in this manager.
 	 */
 	public int read(long actionId, ByteBuffer buffer, long channelId) throws NoActionException {
-		CrailAction action = actions.get(actionId);
+		final CrailAction action = actions.get(actionId);
 		if (action == null) {
 			throw new NoActionException();
 		}
 		BlockingQueue<OperationSlice> channel;
 		synchronized (channels) {
-			channel = channels.get(channelId);
-			if (channel == null) {  // channel is new
-				channel = new ArrayBlockingQueue<>(CH_SIZE);
-				channels.put(channelId, channel);
+			channel = channels.computeIfAbsent(channelId, k -> {
+				// When channel is new
+				BlockingQueue<OperationSlice> c = new ArrayBlockingQueue<>(ActiveStorageConstants.STORAGE_ACTIVE_CHANNEL_SIZE);
 				// submit the read task to generate data from action
-				actionExecutorService.submit(new OnReadOperation(action, channel, actionLocks.get(actionId)));
-			}
+				actionExecutorService.submit(new OnReadOperation(action, c, actionLocks.get(actionId)));
+				return c;
+			});
 		}
 		if (!channel.isEmpty() && channel.peek().getSlice() == null) {
 			// end-of-stream -> buffer isn't affected
@@ -157,17 +159,19 @@ public class ActionManager {
 		try {
 			channel.put(op);
 		} catch (InterruptedException e) {
-			// put interrupted should mean the channel was closed
+			// This means the thread is forced to stop (the operation was never queued in the channel)
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 		// wait until the buffer is filled (could be partial if end-of-stream)
 		try {
 			op.waitCompleted();
 			// LOG.info("active read completed, action " + actionId + ", channel " + channelId);
 		} catch (InterruptedException e) {
-			// interruption means that the channel was closed after this slice
-			// was queued but never taken from queue
+			// This means the thread is forced to stop
+			// (the operation was queued in the channel but never taken or partially filled)
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 		// return actual bytes read (should always be >= 0)
 		return op.getBytesProcessed();
@@ -191,37 +195,38 @@ public class ActionManager {
 	 */
 	public int write(long actionId, ByteBuffer buffer, long channelId)
 			throws NoActionException {
-		CrailAction action = actions.get(actionId);
+		final CrailAction action = actions.get(actionId);
 		if (action == null) {
 			throw new NoActionException();
 		}
 		BlockingQueue<OperationSlice> channel;
 		synchronized (channels) {
-			channel = channels.get(channelId);
-			if (channel == null) {  // channel is new
-				channel = new ArrayBlockingQueue<>(CH_SIZE);
-				channels.put(channelId, channel);
-				actionExecutorService.submit(new OnWriteOperation(action, channel, actionLocks.get(actionId)));
-			}
+			channel = channels.computeIfAbsent(channelId, k -> {
+				// channel is new
+				BlockingQueue<OperationSlice> c = new ArrayBlockingQueue<>(ActiveStorageConstants.STORAGE_ACTIVE_CHANNEL_SIZE);
+				actionExecutorService.submit(new OnWriteOperation(action, c, actionLocks.get(actionId)));
+				return c;
+			});
 		}
 		OperationSlice op = new OperationSlice(buffer, false);
 		try {
-			// TODO: deal with a server-side-early-closed channel, and already closed channels
 			channel.put(op);
 			// LOG.info("active write queued, action " + actionId + ", channel " + channelId);
 		} catch (InterruptedException e) {
-			// put interrupted means the channel was closed before end-of-stream and this operation is discarded
+			// This means the thread is forced to stop (the operation was never queued in the channel)
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 		// wait until the buffer is processed
 		try {
 			op.waitCompleted();
 			// Waiting on writes is not necessary but allows to reuse the same buffer for all
-			// operations from that network thread. This could stale netwok threads in deadlocks
+			// operations from that network thread. This could stale network threads in deadlocks
 		} catch (InterruptedException e) {
-			// interruption means that the channel was closed early server-side after this slice
-			// was queued but never taken from queue
+			// This means the thread is forced to stop
+			// (the operation was queued in the channel but never taken or partially filled)
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 		// return actual bytes written (should always be >= 0)
 		return op.getBytesProcessed();
@@ -297,6 +302,7 @@ public class ActionManager {
 			}
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
 	}
 
@@ -332,12 +338,18 @@ public class ActionManager {
 		@Override
 		public void run() {
 			lock.lock();
-			try {
-				if (action.isInterleaving()) {
-					action.onWrite(new OnWriteChannel(channel, lock));
-				} else {
-					action.onWrite(new OnWriteChannel(channel));
-				}
+			try (
+					OnWriteChannel owc = action.isInterleaving()
+							? new OnWriteChannel(channel, lock)
+							: new OnWriteChannel(channel)
+			) {
+				action.onWrite(owc);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				// Show any exception occurred within the action code.
+				e.printStackTrace();
+				throw e;
 			} finally {
 				lock.unlock();
 			}
@@ -361,12 +373,18 @@ public class ActionManager {
 		@Override
 		public void run() {
 			lock.lock();
-			try {
-				if (action.isInterleaving()) {
-					action.onRead(new OnReadChannel(channel, lock));
-				} else {
-					action.onRead(new OnReadChannel(channel));
-				}
+			try (
+					OnReadChannel orc = action.isInterleaving()
+							? new OnReadChannel(channel, lock)
+							: new OnReadChannel(channel)
+			) {
+				action.onRead(orc);
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				// Show any exception occurred within the action code.
+				e.printStackTrace();
+				throw e;
 			} finally {
 				lock.unlock();
 			}

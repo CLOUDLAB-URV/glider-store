@@ -22,19 +22,18 @@ import org.slf4j.Logger;
 public class ActiveAsyncChannel extends ActiveChannel implements AsynchronousByteChannel {
     private static final Logger LOG = CrailUtils.getLogger();
     private boolean open;
-    private long totalBytes = 0;
-    private String mode;
+    private final String mode;
 
     ActiveAsyncChannel(CoreObject object, ActiveEndpoint endpoint, BlockInfo block, String mode) throws IOException {
         super(object, endpoint, block);
         this.open = true;
-        if (mode == "r" || mode == "w") {
+        if ("r".equals(mode) || "w".equals(mode)) {
             this.mode = mode;
         } else {
             throw new IllegalStateException("AsyncChannel model con only be r or w.");
         }
         if (CrailConstants.DEBUG) {
-            LOG.info("ActiveAsyncChannel, open, path " + object.getPath());
+            LOG.info("ActiveAsyncChannel, open, path {}", object.getPath());
         }
     }
 
@@ -44,12 +43,15 @@ public class ActiveAsyncChannel extends ActiveChannel implements AsynchronousByt
             return;
         }
         try {
-            if (mode == "r") {
+            if ("r".equals(mode)) {
                 endpoint.closeRead(block, position, channelId).get();
-            } else if (mode == "w") {
+            } else if ("w".equals(mode)) {
                 endpoint.closeWrite(block, position, channelId).get();
             }
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException e) {
             throw new IOException("ActiveAsyncChannel:close - Future not completed.", e);
         }
         open = false;
@@ -72,7 +74,7 @@ public class ActiveAsyncChannel extends ActiveChannel implements AsynchronousByt
             future.complete(0);
             return future;
         }
-        if (mode == "r") {
+        if ("r".equals(mode)) {
             try {
                 CoreObjectOperation operation = dataOperation(dst);
                 return new ChannelFuture(operation);
@@ -88,8 +90,7 @@ public class ActiveAsyncChannel extends ActiveChannel implements AsynchronousByt
 
     @Override
     public <A> void read(ByteBuffer dst, A attachment, CompletionHandler<Integer, ? super A> handler) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -104,7 +105,7 @@ public class ActiveAsyncChannel extends ActiveChannel implements AsynchronousByt
             future.complete(0);
             return future;
         }
-        if (mode == "w") {
+        if ("w".equals(mode)) {
             try {
                 CoreObjectOperation operation = dataOperation(src);
                 return new ChannelFuture(operation);
@@ -120,22 +121,21 @@ public class ActiveAsyncChannel extends ActiveChannel implements AsynchronousByt
 
     @Override
     public <A> void write(ByteBuffer src, A attachment, CompletionHandler<Integer, ? super A> handler) {
-        // TODO Auto-generated method stub
-
+        throw new UnsupportedOperationException();
     }
 
     @Override
     StorageFuture trigger(CoreSubOperation operation, ByteBuffer buffer) throws IOException {
-        if (mode == "r") {
+        if ("r".equals(mode)) {
             return endpoint.readStream(buffer, block, operation.getFileOffset(), channelId);
-        } else if (mode == "w") {
+        } else if ("w".equals(mode)) {
             return endpoint.writeStream(buffer, block, operation.getFileOffset(), channelId);
         } else {
             throw new IllegalStateException();
         }
     }
 
-    private class ChannelFuture implements Future<Integer> {
+    private static class ChannelFuture implements Future<Integer> {
         CoreObjectOperation operation;
 
         ChannelFuture(CoreObjectOperation operation) {

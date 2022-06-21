@@ -21,9 +21,6 @@ public class CounterAction extends CrailAction {
 	public void onCreate() {count = 0;}
 
 	@Override
-	public void onDelete() {}
-
-	@Override
 	public void onRead(WritableByteChannel channel) {
 		OutputStream stream = Channels.newOutputStream(channel);
 		DataOutputStream dataOutputStream = new DataOutputStream(stream);

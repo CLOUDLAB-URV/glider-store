@@ -84,10 +84,12 @@ class CoreObjectOperation extends MultiFuture<StorageResult, CrailResult> implem
 		return inProcessLen == operationLength;
 	}
 
+	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
 		return false;
 	}
 
+	@Override
 	public boolean isCancelled() {
 		return false;
 	}

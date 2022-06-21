@@ -106,6 +106,8 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			case ActiveStorageProtocol.REQ_CLOSE:
 				closeRequest.update(buffer);
 				break;
+			default:
+				throw new IllegalStateException("Unexpected value: " + type);
 		}
 	}
 
@@ -132,6 +134,8 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			case ActiveStorageProtocol.REQ_CLOSE:
 				written += closeRequest.write(buffer);
 				break;
+			default:
+				throw new IllegalStateException("Unexpected value: " + type);
 		}
 		return written;
 	}
@@ -212,7 +216,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			return CSIZE;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			key = buffer.getInt();
 			address = buffer.getLong();
 			offset = buffer.getLong();
@@ -225,7 +229,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			data.flip();
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(key);
 			buffer.putLong(address);
 			buffer.putLong(offset);
@@ -283,7 +287,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			return CSIZE;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			key = buffer.getInt();
 			address = buffer.getLong();
 			offset = buffer.getLong();
@@ -291,7 +295,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			length = buffer.getInt();
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(key);
 			buffer.putLong(address);
 			buffer.putLong(offset);
@@ -354,7 +358,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 					+ path.getBytes(StandardCharsets.UTF_8).length;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			key = buffer.getInt();
 			address = buffer.getLong();
 			interleaving = buffer.getChar() == 't';
@@ -366,13 +370,13 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			path = new String(pathBytes, StandardCharsets.UTF_8);
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(key);
 			buffer.putLong(address);
 			if (interleaving) {
 				buffer.putChar('t');
 			} else {
-				buffer.putChar('f');				
+				buffer.putChar('f');
 			}
 			byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 			buffer.putInt(nameBytes.length);
@@ -411,12 +415,12 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			return CSIZE;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			key = buffer.getInt();
 			address = buffer.getLong();
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(key);
 			buffer.putLong(address);
 			return CSIZE;
@@ -449,12 +453,12 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			return CSIZE;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			key = buffer.getInt();
 			address = buffer.getLong();
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(key);
 			buffer.putLong(address);
 			return CSIZE;
@@ -505,7 +509,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			return CSIZE;
 		}
 
-		public void update(ByteBuffer buffer) throws IOException {
+		public void update(ByteBuffer buffer) {
 			key = buffer.getInt();
 			address = buffer.getLong();
 			channel = buffer.getLong();
@@ -513,7 +517,7 @@ public class ActiveStorageRequest implements NaRPCMessage {
 			isWrite = buffer.getShort();
 		}
 
-		public int write(ByteBuffer buffer) throws IOException {
+		public int write(ByteBuffer buffer) {
 			buffer.putInt(key);
 			buffer.putLong(address);
 			buffer.putLong(channel);

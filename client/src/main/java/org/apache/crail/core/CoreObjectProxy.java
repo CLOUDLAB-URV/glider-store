@@ -37,7 +37,7 @@ public class CoreObjectProxy implements CrailObjectProxy {
 		EndpointCache endpointCache = fs.getDatanodeEndpointCache();
 		RpcConnection namenodeClientRpc = fs.getNamenodeClientRpc();
 
-		LOG.info("crail proxy: creating");
+//		LOG.info("crail proxy: creating for action {}", node.getPath());
 
 		// obtain the object's block from namenode; position and capacity are always 0
 		RpcFuture<RpcGetBlock> rpcFuture =
@@ -48,7 +48,7 @@ public class CoreObjectProxy implements CrailObjectProxy {
 			throw new IOException("rpc timeout");
 		}
 		if (getBlockRes.getError() != RpcErrors.ERR_OK) {
-			LOG.info("crail proxy: " + RpcErrors.messages[getBlockRes.getError()]);
+			LOG.info("crail proxy: {}", RpcErrors.messages[getBlockRes.getError()]);
 			throw new IOException(RpcErrors.messages[getBlockRes.getError()]);
 		}
 		this.block = getBlockRes.getBlockInfo();
