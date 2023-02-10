@@ -22,8 +22,10 @@ import org.apache.crail.utils.CrailUtils;
 import org.slf4j.Logger;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
@@ -42,23 +44,29 @@ public class CrailConfiguration {
 	}
 
 	public static CrailConfiguration createConfigurationFromFile() throws IOException {
-		CrailConfiguration cconf = createEmptyConfiguration();
 		String base = System.getenv("CRAIL_HOME");
-		if (base == null || base.isEmpty()) {
+		if (base != null && !base.isEmpty()) {
+			return createConfigurationFromFile(base + File.separator + "conf" + File.separator + "crail-site.conf");
+		} else {
 			throw new IllegalArgumentException("CRAIL_HOME environment variable is not set or empty");
 		}
-		cconf.loadConfigurationFromFile(base + File.separator + "conf" + File.separator + "crail-site.conf");
-		return (cconf);
 	}
 
 	public static CrailConfiguration createConfigurationFromFile(String path) throws IOException {
 		CrailConfiguration cconf = createEmptyConfiguration();
-		cconf.loadConfigurationFromFile(path);
+		InputStream inputStream = Files.newInputStream(Paths.get(path));
+		cconf.loadConfigurationFromStream(inputStream);
 		return (cconf);
 	}
 
-	private void loadConfigurationFromFile(String path) throws IOException {
-		Properties properties = loadProperties(path);
+	public static CrailConfiguration createConfigurationFromStream(InputStream stream) throws IOException {
+		CrailConfiguration cconf = createEmptyConfiguration();
+		cconf.loadConfigurationFromStream(stream);
+		return (cconf);
+	}
+
+	private void loadConfigurationFromStream(InputStream stream) throws IOException {
+		Properties properties = loadProperties(stream);
 		mergeProperties(properties);
 	}
 
@@ -87,10 +95,8 @@ public class CrailConfiguration {
 		return output.toString();
 	}
 
-	private static Properties loadProperties(String resourceName) throws IOException {
+	private static Properties loadProperties(InputStream inputStream) throws IOException {
 		Properties properties = new Properties();
-
-		FileInputStream inputStream = new FileInputStream(new File(resourceName));
 
 		try {
 			properties.load(inputStream);

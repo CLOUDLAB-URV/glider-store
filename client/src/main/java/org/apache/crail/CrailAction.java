@@ -61,4 +61,9 @@ public abstract class CrailAction {
 	 * the user calls <code>delete</code> on an active object proxy.
 	 */
 	public void onDelete() {}
+
+	@Override
+	public String toString() {
+		return "Action " + self.getPath();
+	}
 }
