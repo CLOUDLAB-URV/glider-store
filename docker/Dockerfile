@@ -17,7 +17,7 @@ FROM ubuntu:18.04
 MAINTAINER Apache Crail <dev@crail.apache.org>
 
 # TODO: automate update version on new release
-ARG GIT_COMMIT="v1.3-daniel"
+ARG GIT_COMMIT="v1.3-glider"
 ENV LOG_COMMIT=$GIT_COMMIT
 
 RUN echo "Crail-$LOG_COMMIT install openjdk8, git and envsubst" && \
@@ -33,18 +33,18 @@ ENV PATH=${PATH}:${JAVA_HOME}/bin
 RUN echo "Crail-$LOG_COMMIT install maven" && \
     apt-get install --no-install-recommends -y maven
 
-ADD . /incubator-crail
+ADD . /crail-glider
 
 RUN echo "Crail-$LOG_COMMIT clone & build Crail repo" && \
-#    git clone https://github.com/danielBCN/incubator-crail.git && \
-    cd incubator-crail && \
+#    git clone https://github.com/CLOUDLAB-URV/glider-store.git && \
+    cd crail-glider && \
 #    git checkout ${GIT_COMMIT} && \
     mvn -DskipTests install
 
 RUN echo "Move crail to /crail" && \
     rm -rf /crail && \
-    v=`xmllint --xpath "string(/*[local-name()='project']/*[local-name()='version'])" /incubator-crail/pom.xml` && \
-    mv /incubator-crail/assembly/target/apache-crail-${v}-bin/apache-crail-${v} /crail
+    v=`xmllint --xpath "string(/*[local-name()='project']/*[local-name()='version'])" /crail-glider/pom.xml` && \
+    mv /crail-glider/assembly/target/apache-crail-${v}-bin/apache-crail-${v} /crail
 
 ENV CRAIL_HOME /crail
 ENV PATH=${PATH}:${CRAIL_HOME}/bin
