@@ -33,6 +33,6 @@ Glider adds a new storage server type ('org.apache.crail.storage.active.ActiveSt
 
 A full description is published in the following research paper:
 
-Daniel Barcelona-Pons, Pedro García-López and Bernard Metzler. 2023. *Glider: Serverless Ephemeral Stateful Near-data Computation*. 
+Daniel Barcelona-Pons, Pedro García-López, and Bernard Metzler. 2023. *Glider: Serverless Ephemeral Stateful Near-Data Computation*. In Proceedings of the 24th International Middleware Conference (Middleware '23). [https://doi.org/10.1145/3590140.3629119](https://doi.org/10.1145/3590140.3629119)
 
 
